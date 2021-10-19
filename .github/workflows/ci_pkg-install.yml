@@ -57,5 +57,5 @@ jobs:
         run: |
           ls
           pip install $(python -c "import glob ; print(' '.join(glob.glob('*.whl')))")
-          pip show kaggle-sandbox
-          python -c "import challenge_xyz ;  print(challenge_xyz.__version__)"
+          pip show kaggle-instsegm
+          python -c "import kaggle_instsegm ;  print(kaggle_instsegm.__version__)"
