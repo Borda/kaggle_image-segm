@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from kaggle_instsegm.utils import create_mask
+from kaggle_instsegm.mask import create_mask
 
 
 def show_image_annot(img_name: str, df_train: pd.DataFrame, img_folder: str):
