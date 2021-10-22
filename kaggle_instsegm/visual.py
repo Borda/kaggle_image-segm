@@ -16,6 +16,6 @@ def show_image_annot(img_name: str, df_train: pd.DataFrame, img_folder: str):
     fig, axarr = plt.subplots(ncols=3, figsize=(14, 6))
     axarr[0].imshow(img)
     axarr[1].imshow(img)
-    axarr[1].contour(mask, levels=np.unique(mask).tolist(), cmap=plt.cm.jet_r, linewidths=0.5)
-    axarr[2].imshow(mask, cmap=plt.cm.jet_r, interpolation="antialiased")
+    axarr[1].contour(mask, levels=np.unique(mask).tolist(), cmap="inferno", linewidths=0.5)
+    axarr[2].imshow(mask, cmap="inferno", interpolation="antialiased")
     return fig

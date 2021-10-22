@@ -10,6 +10,7 @@ recursive-include kaggle_instsegm *.md
 # Include the license file
 include LICENSE
 
+recursive-include assets *.png
 exclude *.sh
 exclude *.toml
 exclude *.svg

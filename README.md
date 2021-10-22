@@ -5,17 +5,36 @@
 [![codecov](https://codecov.io/gh/Borda/kaggle_cell-inst-segm/branch/main/graph/badge.svg)](https://codecov.io/gh/Borda/kaggle_cell-inst-segm)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Borda/kaggle_cell-inst-segm/main.svg)](https://results.pre-commit.ci/latest/github/Borda/kaggle_cell-inst-segm/main)
 
-This is a simple template project to Kaggle participation...
+The goal of this challenge is to detect cells in microscope images.
 
-### Expected content:
+![Sample brain visual](./assets/cells-annot.png)
 
-- a core package with functionalities used across scripts and notebooks
-- tutorial/experiment notebooks (in _notebook_ folder if needed)
-- \[optional\] some functionality testing aka unittests or doctests
+with simple view on how many cels have been annotated per image:
 
-### What to write here:
+![Sample brain visual](./assets/hist_cells-per-image.png)
 
-- simple completion description + link
-- shortly what task it is to solve
-- list/link online sources
-- link kernels/submissions
+## Experimentation
+
+### install this tooling
+
+A simple way how to use this basic functions:
+
+```bash
+! pip install https://github.com/Borda/kaggle_cell-inst-segm/archive/refs/heads/main.zip
+```
+
+### run notebooks in Kaggle
+
+- [🦠Cell Instance Segm: 🔍 interactive data browsing](https://www.kaggle.com/jirkaborovec/cell-instance-segm-interactive-data-browsing)
+- [🦠Cell Instance Segm. ~ Lightning⚡Flash](https://www.kaggle.com/jirkaborovec/cell-instance-segm-lightning-flash)
+
+### local notebooks
+
+- TBD
+-
+
+### some results
+
+Training progress with EfficientNet3D with training  for 10 epochs > over 96% validation accuracy:
+
+![Training process](./assets/metrics.png)
