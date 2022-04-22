@@ -11,7 +11,7 @@ exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
 
 [tool.isort]
 known_first_party = [
-    "kaggle_instsegm",
+    "kaggle_imsegm",
 ]
 skip_glob = []
 profile = "black"

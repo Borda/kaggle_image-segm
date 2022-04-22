@@ -10,7 +10,7 @@ from setuptools import find_packages, setup
 
 _PATH_ROOT = os.path.dirname(__file__)
 
-import kaggle_instsegm  # noqa: E402
+import kaggle_imsegm  # noqa: E402
 
 
 def _load_requirements(path_dir=_PATH_ROOT, comment_char="#"):
@@ -22,7 +22,7 @@ def _load_requirements(path_dir=_PATH_ROOT, comment_char="#"):
 
 
 def _load_long_description():
-    url = os.path.join(kaggle_instsegm.__homepage__, "raw", kaggle_instsegm.__version__, "docs")
+    url = os.path.join(kaggle_imsegm.__homepage__, "raw", kaggle_imsegm.__version__, "docs")
     text = open("README.md", encoding="utf-8").read()
     # replace relative repository path to absolute link to the release
     text = text.replace("](docs", f"]({url}")
@@ -38,12 +38,12 @@ def _load_long_description():
 # engineer specific practices
 setup(
     name="kaggle-instsegm",
-    version=kaggle_instsegm.__version__,
-    description=kaggle_instsegm.__docs__,
-    author=kaggle_instsegm.__author__,
-    author_email=kaggle_instsegm.__author_email__,
-    url=kaggle_instsegm.__homepage__,
-    license=kaggle_instsegm.__license__,
+    version=kaggle_imsegm.__version__,
+    description=kaggle_imsegm.__docs__,
+    author=kaggle_imsegm.__author__,
+    author_email=kaggle_imsegm.__author_email__,
+    url=kaggle_imsegm.__homepage__,
+    license=kaggle_imsegm.__license__,
     packages=find_packages(exclude=["tests", "docs"]),
     long_description=_load_long_description(),
     long_description_content_type="text/markdown",
@@ -54,7 +54,7 @@ setup(
     setup_requires=[],
     install_requires=_load_requirements(_PATH_ROOT),
     project_urls={
-        "Source Code": kaggle_instsegm.__homepage__,
+        "Source Code": kaggle_imsegm.__homepage__,
     },
     classifiers=[
         "Environment :: Console",
