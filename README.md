@@ -28,7 +28,7 @@ The goal of this challenge is to detect cells in microscope images.
 
 The goal of this challenge is to segment organs in medical scans to improve cancer treatment
 
-![Sample organs visual](./assets/organ-annot.png)
+![Sample organs visual](./assets/organs-annot.png)
 
 ### run notebooks in Kaggle
 
