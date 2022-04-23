@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
 from pandas import DataFrame
@@ -9,7 +9,7 @@ from PIL import Image
 from kaggle_imsegm.mask import rle_decode
 
 
-def load_image_volume(img_dir: str, quant: float = 0.01) -> np.ndarray:
+def load_volume_from_images(img_dir: str, quant: float = 0.01) -> np.ndarray:
     """
     Args:
         img_dir: path to folder with images, where each image is volume slice
@@ -28,7 +28,7 @@ def load_image_volume(img_dir: str, quant: float = 0.01) -> np.ndarray:
     return vol
 
 
-def create_organs_segm(df_vol: DataFrame, vol_shape: Tuple[int, int, int]) -> np.ndarray:
+def create_tract_segm(df_vol: DataFrame, vol_shape: Tuple[int, int, int]) -> np.ndarray:
     """
     Args:
         df_vol: dataframe with filtered resorts just for one volume and segmentation ans RLE
@@ -49,3 +49,16 @@ def create_organs_segm(df_vol: DataFrame, vol_shape: Tuple[int, int, int]) -> np
         segm[idx, :, :] = mask
         # plt.figure(); plt.imshow(mask)
     return segm
+
+
+def extract_tract_details(id_: str, dataset_dir: str) -> Dict[str, Any]:
+    fields = id_.split("_")
+    case = fields[0].replace("case", "")
+    day = fields[1].replace("day", "")
+    slice_id = fields[3]
+    img_dir = os.path.join(dataset_dir, "train", f"case{case}", f"case{case}_day{day}", "scans")
+    imgs = glob.glob(os.path.join(img_dir, f"slice_{slice_id}_*.png"))
+    assert len(imgs) == 1
+    img_path = imgs[0].replace(dataset_dir + "/", "")
+    img = os.path.basename(img_path)
+    return {"Case": int(case), "Day": int(day), "Slice": slice_id, "image": img, "image_path": img_path}

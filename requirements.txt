@@ -4,3 +4,4 @@ torchmetrics>=0.6
 matplotlib
 pandas>1.0
 ipywidgets
+scikit-image
