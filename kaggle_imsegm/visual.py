@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from kaggle_imsegm.mask import create_mask
+from kaggle_imsegm.mask import create_cells_instances_mask
 
 
 def show_cells_image_annot(img_name: str, df_train: pd.DataFrame, img_folder: str):
@@ -12,7 +12,7 @@ def show_cells_image_annot(img_name: str, df_train: pd.DataFrame, img_folder: st
     df_img = df_train[df_train["id"] == img_name]
     path_img = os.path.join(img_folder, f"{img_name}.png")
     img = plt.imread(path_img)
-    mask = create_mask(df_img)
+    mask = create_cells_instances_mask(df_img)
     fig, axarr = plt.subplots(ncols=3, figsize=(14, 6))
     axarr[0].imshow(img)
     axarr[1].imshow(img)

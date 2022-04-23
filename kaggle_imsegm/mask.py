@@ -73,7 +73,7 @@ def rle_encode(mask: np.ndarray, bg: int = 0) -> Dict[int, str]:
     return rle
 
 
-def create_mask(df_image: pd.DataFrame) -> np.ndarray:
+def create_cells_instances_mask(df_image: pd.DataFrame) -> np.ndarray:
     """Aggregate multiple encoding to single multi-label mask."""
     assert len(df_image["id"].unique()) == 1
     sizes = list({(row["height"], row["width"]) for _, row in df_image.iterrows()})

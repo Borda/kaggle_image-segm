@@ -32,7 +32,7 @@ The goal of this challenge is to segment organs in medical scans to improve canc
 
 ### run notebooks in Kaggle
 
-- [🩻Tract Segm: EDA 🔎 & 3D🗄️data browser](https://www.kaggle.com/jirkaborovec/tract-segm-eda-3d-data-browser)
+- [Tract🩻Segm: EDA 🔎 & 3D🗄️data browser](https://www.kaggle.com/code/jirkaborovec/tract-segm-eda-3d-data-browser)
 
 ## Experimentation
 
