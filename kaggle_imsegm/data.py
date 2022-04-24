@@ -15,8 +15,8 @@ def load_volume_from_images(img_dir: str, quant: float = 0.01) -> np.ndarray:
         img_dir: path to folder with images, where each image is volume slice
         quant: remove some intensity extreme
     """
-    imgs = sorted(glob.glob(os.path.join(img_dir, "*.png")))
-    imgs = [np.array(Image.open(p)).tolist() for p in imgs]
+    img_paths = sorted(glob.glob(os.path.join(img_dir, "*.png")))
+    imgs = [np.array(Image.open(p)).tolist() for p in img_paths]
     # print([np.max(im) for im in imgs])
     vol = np.array(imgs)
     if quant:
@@ -42,8 +42,8 @@ def create_tract_segm(df_vol: DataFrame, vol_shape: Tuple[int, int, int]) -> np.
         idx = int(idx_) - 1
         mask = segm[idx, :, :]
         for _, (lb, rle) in dfg[["class", "segmentation"]].iterrows():
-            lb = lbs.index(lb)
-            if not rle:
+            lb = lbs.index(lb) + 1
+            if not rle or not isinstance(rle, str):
                 continue
             mask = rle_decode(rle, img=mask, label=lb)
         segm[idx, :, :] = mask

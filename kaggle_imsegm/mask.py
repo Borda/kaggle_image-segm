@@ -68,7 +68,7 @@ def rle_encode(mask: np.ndarray, bg: int = 0) -> Dict[int, str]:
         running_lb = v
         running_idx = i
         running_count = 1
-    # post processing
+    # post-processing
     rle = {lb: " ".join(map(str, idx_counts)) for lb, idx_counts in rle.items()}
     return rle
 
