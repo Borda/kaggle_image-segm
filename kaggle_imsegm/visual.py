@@ -8,7 +8,7 @@ from matplotlib import patches, pyplot as plt
 from matplotlib.path import Path
 from skimage import color
 
-from kaggle_imsegm.mask import create_cells_instances_mask
+from kaggle_imsegm.data import create_cells_instances_mask
 
 
 def show_cells_image_annot(img_name: str, df_train: pd.DataFrame, img_folder: str):

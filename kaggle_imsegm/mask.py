@@ -1,7 +1,6 @@
 from typing import Dict
 
 import numpy as np
-import pandas as pd
 
 
 def rle_decode(mask_rle: str, img: np.ndarray = None, img_shape: tuple = None, label: int = 1) -> np.ndarray:
@@ -39,8 +38,10 @@ def rle_decode(mask_rle: str, img: np.ndarray = None, img_shape: tuple = None, l
     return img.reshape(img_shape)
 
 
-def rle_encode(mask: np.ndarray, bg: int = 0) -> Dict[int, str]:
+def rle_encode(mask: np.ndarray, label_bg: int = 0) -> Dict[int, str]:
     """Encode mask to Run-length encoding.
+
+    Inspiration took from: https://gist.github.com/nvictus/66627b580c13068589957d6ab0919e66
 
     >>> from pprint import pprint
     >>> mask = np.array([[0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
@@ -50,36 +51,17 @@ def rle_encode(mask: np.ndarray, bg: int = 0) -> Dict[int, str]:
     {1: '1 5 13 3 25 1', 2: '16 3', 3: '26 2'}
     """
     vec = mask.flatten()
+    nb = len(vec)
+    where = np.flatnonzero
+    starts = np.r_[0, where(~np.isclose(vec[1:], vec[:-1], equal_nan=True)) + 1]
+    lengths = np.diff(np.r_[starts, nb])
+    values = vec[starts]
+    assert len(starts) == len(lengths) == len(values)
     rle = {}
-    running_lb = None
-    running_idx = None
-    running_count = 0
-    # iterate complete vector
-    for i, v in enumerate(vec):
-        if v == bg and running_lb in (None, bg):
+    for start, length, val in zip(starts, lengths, values):
+        if val == label_bg:
             continue
-        if running_lb == v:
-            running_count += 1
-            continue
-        if running_lb not in (None, bg):
-            if running_lb not in rle:
-                rle[running_lb] = []
-            rle[running_lb] += [running_idx, running_count]
-        running_lb = v
-        running_idx = i
-        running_count = 1
+        rle[val] = rle.get(val, []) + [str(start), length]
     # post-processing
-    rle = {lb: " ".join(map(str, idx_counts)) for lb, idx_counts in rle.items()}
+    rle = {lb: " ".join(map(str, id_lens)) for lb, id_lens in rle.items()}
     return rle
-
-
-def create_cells_instances_mask(df_image: pd.DataFrame) -> np.ndarray:
-    """Aggregate multiple encoding to single multi-label mask."""
-    assert len(df_image["id"].unique()) == 1
-    sizes = list({(row["height"], row["width"]) for _, row in df_image.iterrows()})
-    assert len(sizes) == 1
-    mask = np.zeros(sizes[0], dtype=np.uint16)
-    df_image.reset_index(inplace=True)
-    for idx, row in df_image.iterrows():
-        mask = rle_decode(row["annotation"], img=mask, label=idx + 1)
-    return mask
