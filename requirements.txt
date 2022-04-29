@@ -1,7 +1,9 @@
 torch>=1.8
+torchvision
 pytorch-lightning>=1.5.0
 torchmetrics>=0.6
 matplotlib
 pandas>1.0
 ipywidgets
 scikit-image
+albumentations>=1.0
