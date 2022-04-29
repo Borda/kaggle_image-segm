@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ def load_volume_from_images(img_dir: str, quant: float = 0.01) -> np.ndarray:
 
 
 def create_tract_segm(
-    df_vol: DataFrame, vol_shape: Tuple[int, int, int], labels: Optional[List[str]] = None
+    df_vol: DataFrame, vol_shape: Tuple[int, int, int], labels: Optional[Sequence[str]] = None
 ) -> np.ndarray:
     """Create 3D segmentation if tracts.
 
@@ -46,6 +46,9 @@ def create_tract_segm(
     segm = np.zeros(vol_shape, dtype=np.uint8)
     if not labels:
         labels = sorted(df_vol["class"].unique())
+    else:
+        df_labels = tuple(df_vol["class"].unique())
+        assert all(lb in labels for lb in df_labels), df_labels
     for idx_, dfg in df_vol.groupby("Slice"):
         idx = int(idx_) - 1
         mask = segm[idx, :, :]
@@ -110,3 +113,28 @@ def interpolate_volume(volume: Tensor, vol_size: Optional[Tuple[int, int, int]],
     if vol_shape == vol_size:
         return volume
     return F.interpolate(volume.unsqueeze(0).unsqueeze(0), size=vol_size, mode=mode, align_corners=False)[0, 0]
+
+
+def preprocess_tract_scan(
+    df_, labels: List[str], dir_data: str, dir_imgs: str, dir_segm: Optional[str] = None, sfolder: str = "train"
+) -> List[str]:
+    case, day, image_path = df_.iloc[0][["Case", "Day", "image_path"]]
+    img_dirs = os.path.dirname(image_path).split(os.path.sep)
+
+    img_folder = os.path.join(dir_data, f"case{case}", f"case{case}_day{day}", "scans")
+    vol = load_volume_from_images(img_dir=img_folder)
+    if dir_segm:
+        seg = create_tract_segm(df_vol=df_, vol_shape=vol.shape, labels=labels)
+
+    imgs = []
+    for _, row in df_.drop_duplicates("image_path").iterrows():
+        idx, image, img_path = row[["Slice", "image", "image_path"]]
+        idx = int(idx) - 1
+        img_name_local = f"{img_dirs[-2]}_{image}"
+        img_path_local = os.path.join(dir_imgs, sfolder, img_name_local)
+        Image.fromarray(vol[idx, :, :]).convert("RGB").save(img_path_local)
+        if dir_segm:
+            segm_path = os.path.join(dir_segm, sfolder, img_name_local)
+            Image.fromarray(seg[idx, :, :]).save(segm_path)
+        imgs.append(img_path_local)
+    return imgs
