@@ -37,7 +37,7 @@ def _load_long_description():
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 setup(
-    name="kaggle-instsegm",
+    name="kaggle-imsegm",
     version=kaggle_imsegm.__version__,
     description=kaggle_imsegm.__docs__,
     author=kaggle_imsegm.__author__,
