@@ -23,6 +23,9 @@ exclude *.yml
 exclude *.yaml
 exclude *.toml
 
+# exclude Experiments
+prune scripts_tract-segm
+
 prune .git
 prune .github
 prune notebook*

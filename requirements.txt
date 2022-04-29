@@ -7,3 +7,4 @@ pandas>1.0
 ipywidgets
 scikit-image
 albumentations>=1.0
+fire
