@@ -33,16 +33,19 @@ The goal of this challenge is to segment organs in medical scans to improve canc
 ### run notebooks in Kaggle
 
 - [Tract🩻Segm: EDA 🔎 & 3D🗄️data browser](https://www.kaggle.com/code/jirkaborovec/tract-segm-eda-3d-data-browser)
+- [Tract🩻Segm: Statistic⚖️predictions](https://www.kaggle.com/code/jirkaborovec/tract-segm-statistic-predictions)
+- [Tract🩻Segm: EDA 🔎 & baseline Flash⚡DeepLab-v3 & albumentations](https://www.kaggle.com/code/jirkaborovec/tract-segm-eda-baseline-flash-deeplab-v3)
+- [](<>)
 
 ## Experimentation
 
 ### local notebooks
 
-- TBD
--
+- [Tract segmentation with pure statistic](./notebooks/Tract-segm_statistic-predictions.ipynb)
+- [Tract segmentation: EDA, baseline with Flash & DeepLab-v3](./notebooks/Tract-segm_EDA-baseline-Flash-DeepLab-v3.ipynb)
 
 ### some results
 
-Training progress with EfficientNet3D with training  for 10 epochs > over 96% validation accuracy:
+Training progress with ResNext50 with training for 20 epochs > over 0.80 validation IoU:
 
-![Training process](./assets/metrics.png)
+![Training process](./assets/tract-segm_metrics.png)
