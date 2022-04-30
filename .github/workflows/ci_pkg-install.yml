@@ -57,5 +57,5 @@ jobs:
         run: |
           ls
           pip install $(python -c "import glob ; print(' '.join(glob.glob('*.whl')))")
-          pip show kaggle-imsegm
+          pip show kaggle-image-segmentation
           python -c "import kaggle_imsegm ;  print(kaggle_imsegm.__version__)"
