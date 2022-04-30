@@ -28,11 +28,11 @@ class SemanticSegmentationInputTransform(InputTransform):
                 alb.VerticalFlip(p=0.5),
                 alb.HorizontalFlip(p=0.5),
                 alb.RandomRotate90(p=0.5),
-                alb.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.05, rotate_limit=15, p=0.5),
+                alb.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.03, rotate_limit=5, p=1.0),
                 alb.GaussNoise(var_limit=(0.00, 0.03), mean=0, per_channel=False, p=1.0),
-                # alb.ElasticTransform(p=1, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03)
+                # alb.ElasticTransform(p=1, alpha=100, sigma=100 * 0.05, alpha_affine=100 * 0.03),
                 # alb.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.5),
-                # alb.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
+                alb.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
             ]
         )
 
@@ -55,14 +55,14 @@ class SemanticSegmentationInputTransform(InputTransform):
 def main(
     dataset_flash: str = "/home/jirka/Datasets/tract-image-segmentation-flash",
     checkpoints_dir: str = "/home/jirka/Workspace/checkpoints_tract-image-segm-flash",
-    batch_size: int = 72,
-    num_workers: int = 24,
+    batch_size: int = 24,
+    num_workers: int = 12,
     model_backbone: str = "resnext50_32x4d",
     model_head: str = "deeplabv3",
     model_pretrained: bool = False,
     optimizer: str = "AdamW",
-    learning_rate: float = 7e-3,
-    max_epochs: int = 50,
+    learning_rate: float = 5e-3,
+    max_epochs: int = 20,
     gpus: int = 1,
     accumulate_grad_batches: int = 1,
     early_stopping: Optional[float] = None,
