@@ -37,12 +37,11 @@ The goal of this challenge is to segment organs in medical scans to improve canc
 - [Tract🩻Segm: EDA 🔎 & baseline Flash⚡DeepLab-v3 & albumentations](https://www.kaggle.com/code/jirkaborovec/tract-segm-eda-baseline-flash-deeplab-v3)
 - [](<>)
 
-## Experimentation
-
 ### local notebooks
 
 - [Tract segmentation with pure statistic](./notebooks/Tract-segm_statistic-predictions.ipynb)
 - [Tract segmentation: EDA, baseline with Flash & DeepLab-v3](./notebooks/Tract-segm_EDA-baseline-Flash-DeepLab-v3.ipynb)
+- [](<>)
 
 ### some results
 

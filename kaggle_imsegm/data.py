@@ -12,19 +12,19 @@ from torch import Tensor
 from kaggle_imsegm.mask import rle_decode
 
 
-def load_volume_from_images(img_dir: str, quant: float = 0.01) -> np.ndarray:
+def load_volume_from_images(img_dir: str, quantile: float = 0.01) -> np.ndarray:
     """Load X-ray volume constructed from images/scans in vertical direction.
 
     Args:
         img_dir: path to folder with images, where each image is volume slice
-        quant: remove some intensity extreme
+        quantile: remove some intensity extreme
     """
     img_paths = sorted(glob.glob(os.path.join(img_dir, "*.png")))
     imgs = [np.array(Image.open(p)).tolist() for p in img_paths]
     # print([np.max(im) for im in imgs])
     vol = np.array(imgs)
-    if quant:
-        q_low, q_high = np.percentile(vol, [quant * 100, (1 - quant) * 100])
+    if quantile:
+        q_low, q_high = np.percentile(vol, [quantile * 100, (1 - quantile) * 100])
         vol = np.clip(vol, q_low, q_high)
     v_min, v_max = np.min(vol), np.max(vol)
     vol = (vol - v_min) / (v_max - v_min)
@@ -63,7 +63,13 @@ def create_tract_segm(
 
 
 def extract_tract_details(id_: str, dataset_dir: str, folder: str = "train") -> Dict[str, Any]:
-    """Enrich dataframe by information from image name."""
+    """Enrich dataframe by information from image name.
+
+    Args:
+        id_: ID from the provided table
+        dataset_dir: path to the dataset folder
+        folder: sub-folder as train/test
+    """
     id_fields = id_.split("_")
     case = id_fields[0].replace("case", "")
     day = id_fields[1].replace("day", "")
@@ -102,6 +108,11 @@ def create_cells_instances_mask(df_image: pd.DataFrame) -> np.ndarray:
 def interpolate_volume(volume: Tensor, vol_size: Optional[Tuple[int, int, int]], mode: str = "nearest") -> Tensor:
     """Interpolate volume in last (Z) dimension.
 
+    Args:
+        volume: input volume of any shape
+        vol_size: the output volume shape
+        mode: interpolation mode (reccomended "nearest" for segmentation and "trilinear" for images)
+
     >>> import torch
     >>> vol = torch.rand(64, 64, 12)
     >>> vol2 = interpolate_volume(vol, vol_size=(64, 64, 24), mode="trilinear")
@@ -116,18 +127,35 @@ def interpolate_volume(volume: Tensor, vol_size: Optional[Tuple[int, int, int]],
 
 
 def preprocess_tract_scan(
-    df_, labels: List[str], dir_data: str, dir_imgs: str, dir_segm: Optional[str] = None, sfolder: str = "train"
+    df_scan,
+    labels: List[str],
+    dir_data: str,
+    dir_imgs: str,
+    dir_segm: Optional[str] = None,
+    sfolder: str = "train",
+    quantile: float = 0.03,
 ) -> List[str]:
-    case, day, image_path = df_.iloc[0][["Case", "Day", "image_path"]]
+    """Prepare set of images and segmentation with respect to whole scan volume.
+
+    Args:
+        df_scan: filtered DataFrame with scans
+        labels: list of all possible labels
+        dir_data input dataset folder
+        dir_imgs: output folder for images
+        dir_segm: output folder for segmentations
+        sfolder: sub-folder for separation between train/val/test
+        quantile: for filtering noise/outliers in intensities
+    """
+    case, day, image_path = df_scan.iloc[0][["Case", "Day", "image_path"]]
     img_dirs = os.path.dirname(image_path).split(os.path.sep)
 
     img_folder = os.path.join(dir_data, f"case{case}", f"case{case}_day{day}", "scans")
-    vol = load_volume_from_images(img_dir=img_folder)
+    vol = load_volume_from_images(img_dir=img_folder, quantile=quantile)
     if dir_segm:
-        seg = create_tract_segm(df_vol=df_, vol_shape=vol.shape, labels=labels)
+        seg = create_tract_segm(df_vol=df_scan, vol_shape=vol.shape, labels=labels)
 
     imgs = []
-    for _, row in df_.drop_duplicates("image_path").iterrows():
+    for _, row in df_scan.drop_duplicates("image_path").iterrows():
         idx, image, img_path = row[["Slice", "image", "image_path"]]
         idx = int(idx) - 1
         img_name_local = f"{img_dirs[-2]}_{image}"

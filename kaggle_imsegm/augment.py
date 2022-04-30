@@ -7,6 +7,8 @@ from torch import nn, Tensor
 
 
 class FlashAlbumentationsAdapter(nn.Module):
+    """This is temporary class for Flash new release."""
+
     # mapping from albumentations to Flash
     TRANSFORM_INPUT_MAPPING = {"image": "input", "mask": "target"}
 
