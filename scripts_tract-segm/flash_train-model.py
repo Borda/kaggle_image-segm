@@ -12,7 +12,7 @@ from flash.image import SemanticSegmentation, SemanticSegmentationData
 from flash.image.segmentation.input_transform import prepare_target, remove_extra_dimensions
 
 from kaggle_imsegm.augment import FlashAlbumentationsAdapter
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
 
 
@@ -57,15 +57,17 @@ def main(
     checkpoints_dir: str = "/home/jirka/Workspace/checkpoints_tract-image-segm-flash",
     batch_size: int = 24,
     num_workers: int = 12,
-    model_backbone: str = "resnext50_32x4d",
-    model_head: str = "deeplabv3",
+    model_backbone: str = "se_resnext50_32x4d",
+    model_head: str = "deeplabv3plus",
     model_pretrained: bool = False,
     optimizer: str = "AdamW",
+    lr_scheduler: Optional[str] = None,
     learning_rate: float = 5e-3,
     max_epochs: int = 20,
     gpus: int = 1,
     accumulate_grad_batches: int = 1,
     early_stopping: Optional[float] = None,
+    swa: Optional[float] = None,
 ) -> None:
     dir_flash_image = os.path.join(dataset_flash, "images")
     assert os.path.isdir(dir_flash_image)
@@ -94,15 +96,19 @@ def main(
         pretrained=model_pretrained,
         optimizer=optimizer,
         learning_rate=learning_rate,
+        lr_scheduler=lr_scheduler,
         num_classes=datamodule.num_classes,
     )
 
     logger = WandbLogger(project="Flash_tract-image-segmentation")
     log_id = str(logger.experiment.id)
-    monitor = "val_cross_entropy"
+    monitor = "val_jaccardindex"
     cbs = [ModelCheckpoint(dirpath=checkpoints_dir, filename=f"{log_id}", monitor=monitor, mode="max", verbose=True)]
     if early_stopping is not None:
         cbs.append(EarlyStopping(monitor=monitor, min_delta=early_stopping, mode="max", verbose=True))
+    if isinstance(swa, float):
+        cbs.append(StochasticWeightAveraging(swa_epoch_start=swa))
+
     trainer = flash.Trainer(
         callbacks=cbs,
         max_epochs=max_epochs,
