@@ -1,10 +1,14 @@
+import glob
 import os
 from typing import List
 
 import fire as fire
+import numpy as np
 import pandas as pd
 from joblib import delayed, Parallel
+
 from kaggle_imsegm.data import extract_tract_details, preprocess_tract_scan
+from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 
 
@@ -12,6 +16,15 @@ def _chose_sfolder(df_: pd.DataFrame, val_cases_days: List[str]) -> str:
     case, day = df_.iloc[0][["Case", "Day"]]
     case_day = f"case{case}_day{day}"
     return "val" if case_day in val_cases_days else "train"
+
+
+def _color_means(img_path, thr: float = 0.05):
+    img = plt.imread(img_path)
+    if np.max(img) > 1.5:
+        img = img / 255.0
+    clr_mean = np.mean(img[img >= thr])
+    clr_std = np.std(img)
+    return clr_mean, clr_std
 
 
 def main(
@@ -59,6 +72,19 @@ def main(
         )
         for _, dfg in tqdm(df_train.groupby("Case_Day"))
     )
+
+    images = glob.glob(os.path.join(dataset_flash, "images", "**", "*.png"), recursive=True)
+    # images += glob.glob(os.path.join(PATH_DATASET, "test_images", "*", "*.jpg"))
+    clr_mean_std = Parallel(n_jobs=os.cpu_count())(delayed(_color_means)(fn) for fn in tqdm(images))
+
+    img_color_mean = pd.DataFrame([c[0] for c in clr_mean_std]).describe()
+    print(img_color_mean.T)
+    img_color_std = pd.DataFrame([c[1] for c in clr_mean_std]).describe()
+    print(img_color_std.T)
+
+    img_color_mean = list(img_color_mean.T["mean"])
+    img_color_std = list(img_color_std.T["mean"])
+    print(f"MEAN: {img_color_mean} \n STD: {img_color_std}")
 
 
 if __name__ == "__main__":

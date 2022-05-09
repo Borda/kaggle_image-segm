@@ -1,55 +1,18 @@
 import os
 
-from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Optional
 
-import albumentations as alb
 import fire
 
 import flash
-from flash.core.data.io.input_transform import InputTransform
-from flash.image import SemanticSegmentation, SemanticSegmentationData
-from flash.image.segmentation.input_transform import prepare_target, remove_extra_dimensions
 
-from kaggle_imsegm.augment import FlashAlbumentationsAdapter
+from flash.image import SemanticSegmentation, SemanticSegmentationData
+
+from kaggle_imsegm.augment import TractSegmentationInputTransform
+
+from kaggle_imsegm.models import LOSS_FNS
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
-
-
-@dataclass
-class SemanticSegmentationInputTransform(InputTransform):
-
-    image_size: Tuple[int, int] = (256, 256)
-
-    def train_per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter(
-            [
-                alb.Resize(*self.image_size),
-                alb.VerticalFlip(p=0.5),
-                alb.HorizontalFlip(p=0.5),
-                alb.RandomRotate90(p=0.5),
-                alb.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.03, rotate_limit=5, p=1.0),
-                alb.GaussNoise(var_limit=(0.00, 0.03), mean=0, per_channel=False, p=1.0),
-                # alb.ElasticTransform(p=1, alpha=100, sigma=100 * 0.05, alpha_affine=100 * 0.03),
-                # alb.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.5),
-                alb.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
-            ]
-        )
-
-    def per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter([alb.Resize(*self.image_size)])
-
-    def predict_input_per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter([alb.Resize(*self.image_size)])
-
-    def target_per_batch_transform(self) -> Callable:
-        return prepare_target
-
-    def predict_per_batch_transform(self) -> Callable:
-        return remove_extra_dimensions
-
-    def serve_per_batch_transform(self) -> Callable:
-        return remove_extra_dimensions
 
 
 def main(
@@ -60,6 +23,8 @@ def main(
     model_backbone: str = "se_resnext50_32x4d",
     model_head: str = "deeplabv3plus",
     model_pretrained: bool = False,
+    image_size: int = 224,
+    loss: Optional[str] = None,
     optimizer: str = "AdamW",
     lr_scheduler: Optional[str] = None,
     learning_rate: float = 5e-3,
@@ -81,10 +46,10 @@ def main(
         val_folder=os.path.join(dir_flash_image, "val"),
         val_target_folder=os.path.join(dir_flash_segm, "val"),
         # val_split=0.1,
-        train_transform=SemanticSegmentationInputTransform,
-        val_transform=SemanticSegmentationInputTransform,
-        predict_transform=SemanticSegmentationInputTransform,
-        transform_kwargs=dict(image_size=(256, 256)),
+        train_transform=TractSegmentationInputTransform,
+        val_transform=TractSegmentationInputTransform,
+        predict_transform=TractSegmentationInputTransform,
+        transform_kwargs=dict(image_size=(image_size, image_size)),
         num_classes=4,
         batch_size=batch_size,
         num_workers=num_workers,
@@ -97,6 +62,7 @@ def main(
         optimizer=optimizer,
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
+        loss_fn=LOSS_FNS.get(loss),
         num_classes=datamodule.num_classes,
     )
 
