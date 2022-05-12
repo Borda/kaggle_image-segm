@@ -7,12 +7,11 @@ import fire
 import flash
 
 from flash.image import SemanticSegmentation, SemanticSegmentationData
-
-from kaggle_imsegm.augment import TractSegmentationInputTransform
-
-from kaggle_imsegm.models import LOSS_FNS
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
+
+from kaggle_imsegm.augment import TractSegmentationInputTransform
+from kaggle_imsegm.models import LOSS_FNS
 
 
 def main(
