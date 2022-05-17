@@ -9,7 +9,7 @@ from joblib import delayed, Parallel
 from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 
-from kaggle_imsegm.data import extract_tract_details, preprocess_tract_scan
+from kaggle_imsegm.data_io import extract_tract_details, preprocess_tract_scan
 
 
 def _chose_sfolder(df_: pd.DataFrame, val_cases_days: List[str]) -> str:

@@ -27,12 +27,12 @@ def load_volume_from_images(img_dir: str, quantile: float = 0.01) -> np.ndarray:
         q_low, q_high = np.percentile(vol, [quantile * 100, (1 - quantile) * 100])
         vol = np.clip(vol, q_low, q_high)
     v_min, v_max = np.min(vol), np.max(vol)
-    vol = (vol - v_min) / (v_max - v_min)
+    vol = (vol - v_min) / float(v_max - v_min)
     vol = (vol * 255).astype(np.uint8)
     return vol
 
 
-def create_tract_segm(
+def create_tract_segmentation(
     df_vol: DataFrame, vol_shape: Tuple[int, int, int], labels: Optional[Sequence[str]] = None
 ) -> np.ndarray:
     """Create 3D segmentation if tracts.
@@ -40,6 +40,7 @@ def create_tract_segm(
     Args:
         df_vol: dataframe with filtered resorts just for one volume and segmentation ans RLE
         vol_shape: shape of the resulting volume
+        labels: list of selected classes
     """
     assert all(c in df_vol.columns for c in ["Slice", "class", "segmentation"])
     df_vol = df_vol.replace(np.nan, "")
@@ -140,7 +141,7 @@ def preprocess_tract_scan(
     Args:
         df_scan: filtered DataFrame with scans
         labels: list of all possible labels
-        dir_data input dataset folder
+        dir_data: input dataset folder
         dir_imgs: output folder for images
         dir_segm: output folder for segmentations
         sfolder: sub-folder for separation between train/val/test
@@ -152,7 +153,7 @@ def preprocess_tract_scan(
     img_folder = os.path.join(dir_data, f"case{case}", f"case{case}_day{day}", "scans")
     vol = load_volume_from_images(img_dir=img_folder, quantile=quantile)
     if dir_segm:
-        seg = create_tract_segm(df_vol=df_scan, vol_shape=vol.shape, labels=labels)
+        seg = create_tract_segmentation(df_vol=df_scan, vol_shape=vol.shape, labels=labels)
 
     imgs = []
     for _, row in df_scan.drop_duplicates("image_path").iterrows():
