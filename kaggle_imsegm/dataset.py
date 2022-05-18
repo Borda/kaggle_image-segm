@@ -17,6 +17,8 @@ from kaggle_imsegm.mask import rle_decode
 class TractDataset2D(Dataset):
     """Basic 2D dataset."""
 
+    labels: Sequence[str]
+
     def __init__(
         self,
         df_data: pd.DataFrame,
@@ -27,8 +29,11 @@ class TractDataset2D(Dataset):
         labels: Sequence[str] = None,
         mode: str = "multilabel",
     ):
-        self.labels = labels if labels else sorted(list(df_data["class"].unique()))
-        self._df_data = self._convert_table(df_data)
+        assert "image_path" in df_data.columns
+        self.with_annot = all(c in df_data.columns for c in ["class", "segmentation"])
+        if self.with_annot:
+            self.labels = labels if labels else sorted(list(df_data["class"].unique()))
+        self._df_data = self._convert_table(df_data) if self.with_annot else df_data
         self.path_imgs = path_imgs
         self.quantile = img_quantile
         self.norm = img_norm
@@ -72,17 +77,21 @@ class TractDataset2D(Dataset):
         return seg
 
     def __getitem__(self, idx: int):
-        item = self._df_data.iloc[idx]
-        img_path = os.path.join(self.path_imgs, item["image_path"])
+        row = self._df_data.iloc[idx]
+        img_path = os.path.join(self.path_imgs, row["image_path"])
         img = self._load_image(img_path)
-        seg = self._load_annot(item, img.shape)
+        h, w = img.shape
         item = {
             "input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)),
-            "target": torch.from_numpy(np.rollaxis(seg, 0, 3)),
+            "metadata": dict(size=(h, w), height=h, width=w),
         }
+        if self.with_annot:
+            seg = self._load_annot(row, img.shape)
+            item["target"] = torch.from_numpy(np.rollaxis(seg, 0, 3))
         if self.transform:
             item = self.transform(item)
-        item["target"] = item["target"].permute(2, 0, 1)
+        if self.with_annot:
+            item["target"] = item["target"].permute(2, 0, 1)
         return item
 
     def __len__(self) -> int:
@@ -102,11 +111,13 @@ class TractData(LightningDataModule):
     _dataset_cls: Union[Type[TractDataset2D]]
     dataset_train: Dataset
     dataset_val: Dataset
+    dataset_pred: Dataset
 
     def __init__(
         self,
-        df_data: pd.DataFrame,
+        df_train: pd.DataFrame,
         dataset_dir: str,
+        df_predict: pd.DataFrame = None,
         val_split: float = 0.1,
         train_transform: Callable = None,
         input_transform: Callable = DEFAULT_TRANSFORM,
@@ -115,7 +126,8 @@ class TractData(LightningDataModule):
         dataloader_kwargs: Dict[str, Any] = None,
     ):
         super().__init__()
-        self._df_data = df_data
+        self._df_train = df_train
+        self._df_predict = df_predict
         self.dataset_dir = dataset_dir
         self.val_split = val_split
         self.train_transform = train_transform if train_transform else input_transform
@@ -128,21 +140,25 @@ class TractData(LightningDataModule):
     #     pass
 
     def setup(self, stage=None) -> None:
-        self._df_data["Case_Day"] = [f"case{r['Case']}_day{r['Day']}" for _, r in self._df_data.iterrows()]
-        case_days = list(self._df_data["Case_Day"].unique())
+        self._df_train["Case_Day"] = [f"case{r['Case']}_day{r['Day']}" for _, r in self._df_train.iterrows()]
+        case_days = list(self._df_train["Case_Day"].unique())
         np.random.shuffle(case_days)
         val_offset = int(self.val_split * len(case_days))
         val_ = case_days[-val_offset:]
-        labels = list(self._df_data["class"].unique())
+        labels = list(self._df_train["class"].unique())
 
-        self._df_train = self._df_data[~self._df_data["Case_Day"].isin(val_)]
+        df_train = self._df_train[~self._df_train["Case_Day"].isin(val_)]
         self.dataset_train = self._dataset_cls(
-            self._df_train, self.dataset_dir, transform=self.train_transform, labels=labels, **self._dataset_kwargs
+            df_train, self.dataset_dir, transform=self.train_transform, labels=labels, **self._dataset_kwargs
         )
-        self._df_val = self._df_data[self._df_data["Case_Day"].isin(val_)]
+        df_val = self._df_train[self._df_train["Case_Day"].isin(val_)]
         self.dataset_val = self._dataset_cls(
-            self._df_val, self.dataset_dir, transform=self.input_transform, labels=labels, **self._dataset_kwargs
+            df_val, self.dataset_dir, transform=self.input_transform, labels=labels, **self._dataset_kwargs
         )
+        if self._df_predict is not None:
+            self.dataset_pred = self._dataset_cls(
+                self._df_predict, self.dataset_dir, transform=self.input_transform, **self._dataset_kwargs
+            )
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.dataset_train, shuffle=True, **self._dataloader_kwargs)
@@ -150,6 +166,6 @@ class TractData(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.dataset_val, shuffle=False, **self._dataloader_kwargs)
 
-    def test_dataloader(self):
-        # todo
-        return None
+    def predict_dataloader(self) -> DataLoader:
+        if self.dataset_pred:
+            return DataLoader(self.dataset_pred, shuffle=False, **self._dataloader_kwargs)

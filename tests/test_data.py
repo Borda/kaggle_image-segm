@@ -1,3 +1,4 @@
+import glob
 import os
 
 import numpy as np
@@ -16,7 +17,7 @@ def test_load_volume(data_dir: str = _ROOT_DATA):
     vol = load_volume_from_images(img_dir)
     assert vol.shape == (8, 310, 360)
 
-    tab = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
+    tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
     )
@@ -29,7 +30,7 @@ def test_load_volume(data_dir: str = _ROOT_DATA):
 
 @pytest.mark.parametrize("cls", [TractDataset2D])
 def test_dataset(cls: Dataset, data_dir: str = _ROOT_DATA):
-    tab = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
+    tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
     )
@@ -42,17 +43,40 @@ def test_dataset(cls: Dataset, data_dir: str = _ROOT_DATA):
     assert spl["target"].shape == torch.Size([3, 310, 360])
 
 
+def test_dataset_predict_2d(data_dir: str = _ROOT_DATA):
+    ls_imgs = glob.glob(os.path.join(data_dir, "**", "*.png"), recursive=True)
+    ls_imgs = [p.replace(data_dir + os.path.sep, "") for p in sorted(ls_imgs)]
+    tab = pd.DataFrame({"image_path": ls_imgs})
+    ds = TractDataset2D(df_data=tab, path_imgs=data_dir)
+    assert len(ds) == 18
+    spl = ds[5]
+    assert spl["input"].dtype == torch.uint8
+    assert spl["input"].shape == torch.Size([3, 310, 360])
+    assert "target" not in spl
+
+
 def test_datamodule(data_dir: str = _ROOT_DATA):
-    tab = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
-    tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
+    np.random.seed(42)
+    tab_train = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
+    tab_train[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab_train["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
     )
-    np.random.seed(42)
+
+    ls_imgs = glob.glob(os.path.join(data_dir, "**", "*.png"), recursive=True)
+    ls_imgs = [p.replace(data_dir + os.path.sep, "") for p in sorted(ls_imgs)]
+    tab_pred = pd.DataFrame({"image_path": ls_imgs})
+
     dm = TractData(
-        df_data=tab, dataset_dir=data_dir, val_split=0.25, dataloader_kwargs=dict(batch_size=3, num_workers=2)
+        df_train=tab_train,
+        df_predict=tab_pred,
+        dataset_dir=data_dir,
+        val_split=0.25,
+        dataloader_kwargs=dict(batch_size=3, num_workers=2),
     )
     dm.setup()
     assert len(dm.train_dataloader()) == 5
     assert len(dm.val_dataloader()) == 2
+    assert len(dm.predict_dataloader()) == 6
     assert list(dm.train_dataloader())
     assert list(dm.val_dataloader())
+    assert list(dm.predict_dataloader())

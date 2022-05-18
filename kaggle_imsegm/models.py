@@ -1,11 +1,11 @@
 import segmentation_models_pytorch as smp
 
 
-def create_loss(mode: str = "multiclass"):
+def create_loss(mode: str = "multiclass", smooth: float = 0.01):
     return {
-        "dice": smp.losses.DiceLoss(mode=mode),
+        "dice": smp.losses.DiceLoss(mode=mode, smooth=smooth),
         "focal": smp.losses.FocalLoss(mode=mode),
-        "jaccard": smp.losses.JaccardLoss(mode=mode),
+        "jaccard": smp.losses.JaccardLoss(mode=mode, smooth=smooth),
         "lovasz": smp.losses.LovaszLoss(mode=mode),
         "tversky": smp.losses.TverskyLoss(mode=mode),
     }
