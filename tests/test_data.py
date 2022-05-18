@@ -1,11 +1,12 @@
 import os
 
+import numpy as np
 import pandas as pd
 import pytest
 from torch.utils.data import Dataset
 
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
-from kaggle_imsegm.dataset import TractDataset2D
+from kaggle_imsegm.dataset import TractData, TractDataset2D
 from tests import _ROOT_DATA
 
 
@@ -33,3 +34,19 @@ def test_dataset(cls: Dataset, data_dir: str = _ROOT_DATA):
     )
     ds = cls(df_data=tab, path_imgs=data_dir)
     assert len(ds) == 18
+
+
+def test_datamodule(data_dir: str = _ROOT_DATA):
+    tab = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
+    tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
+        lambda x: pd.Series(extract_tract_details(x, data_dir))
+    )
+    np.random.seed(42)
+    dm = TractData(
+        df_data=tab, dataset_dir=data_dir, val_split=0.25, dataloader_kwargs=dict(batch_size=3, num_workers=2)
+    )
+    dm.setup()
+    assert len(dm.train_dataloader()) == 5
+    assert len(dm.val_dataloader()) == 2
+    assert list(dm.train_dataloader())
+    assert list(dm.val_dataloader())

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 import albumentations as alb
 
@@ -35,9 +35,13 @@ class FlashAlbumentationsAdapter(nn.Module):
             return x.permute(1, 2, 0).numpy()
         return x.numpy()
 
+    @staticmethod
+    def _to_numpy(t: Union[Tensor, np.ndarray]) -> np.ndarray:
+        return t.numpy() if isinstance(t, Tensor) else t
+
     def forward(self, x: Any) -> Any:
         if isinstance(x, dict):
-            x_ = {self._mapping.get(k, k): x[k].numpy() for k in self._mapping if k in x and k != self._img_key}
+            x_ = {self._mapping.get(k, k): self._to_numpy(x[k]) for k in self._mapping if k in x and k != self._img_key}
             if self._img_key in self._mapping and self._img_key in x:
                 x_.update({self._mapping[self._img_key]: self._image_transform(x[self._img_key])})
         else:
