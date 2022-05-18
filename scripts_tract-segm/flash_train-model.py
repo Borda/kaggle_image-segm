@@ -10,8 +10,8 @@ from flash.image import SemanticSegmentation, SemanticSegmentationData
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
 
-from kaggle_imsegm.augment import TractSegmentationInputTransform
-from kaggle_imsegm.models import LOSS_FNS
+from kaggle_imsegm.augment import TractFlashSegmentationTransform
+from kaggle_imsegm.models import create_loss
 
 
 def main(
@@ -45,9 +45,9 @@ def main(
         val_folder=os.path.join(dir_flash_image, "val"),
         val_target_folder=os.path.join(dir_flash_segm, "val"),
         # val_split=0.1,
-        train_transform=TractSegmentationInputTransform,
-        val_transform=TractSegmentationInputTransform,
-        predict_transform=TractSegmentationInputTransform,
+        train_transform=TractFlashSegmentationTransform,
+        val_transform=TractFlashSegmentationTransform,
+        predict_transform=TractFlashSegmentationTransform,
         transform_kwargs=dict(image_size=(image_size, image_size)),
         num_classes=4,
         batch_size=batch_size,
@@ -61,7 +61,7 @@ def main(
         optimizer=optimizer,
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
-        loss_fn=LOSS_FNS.get(loss),
+        loss_fn=create_loss().get(loss),
         num_classes=datamodule.num_classes,
     )
 

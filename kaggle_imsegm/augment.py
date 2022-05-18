@@ -51,7 +51,7 @@ class FlashAlbumentationsAdapter(nn.Module):
 
 
 @dataclass
-class TractSegmentationInputTransform(InputTransform):
+class TractFlashSegmentationTransform(InputTransform):
     # https://albumentations.ai/docs/examples/pytorch_semantic_segmentation
 
     image_size: Tuple[int, int] = (224, 224)

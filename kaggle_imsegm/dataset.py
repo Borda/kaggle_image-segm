@@ -1,8 +1,9 @@
 import os.path
-from typing import Callable, Tuple
+from typing import Callable, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
@@ -20,9 +21,10 @@ class TractDataset2D(Dataset):
         transform: Callable = None,
         img_quantile: float = 0.01,
         img_norm: bool = True,
+        labels: Sequence[str] = None,
         mode: str = "multi-label",
     ):
-        self.labels = sorted(list(df_data["class"].unique()))
+        self.labels = labels if labels else sorted(list(df_data["class"].unique()))
         self._df_data = self._convert_table(df_data)
         self.path_imgs = path_imgs
         self.quantile = img_quantile
@@ -70,7 +72,7 @@ class TractDataset2D(Dataset):
         img_path = os.path.join(self.path_imgs, item["image_path"])
         img = self._load_image(img_path)
         seg = self._load_annot(item, img.shape)
-        item = {"image": img, "mask": seg}
+        item = {"input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)), "target": torch.from_numpy(seg)}
         if self.transform:
             item = self.transform(item)
         return item
