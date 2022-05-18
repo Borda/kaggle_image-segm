@@ -1,8 +1,7 @@
-import os.path
+import os
 from typing import Any, Callable, Dict, Sequence, Tuple, Type, Union
 
 import albumentations as alb
-
 import numpy as np
 import pandas as pd
 import torch
@@ -61,7 +60,8 @@ class TractDataset2D(Dataset):
         return img
 
     def _load_annot(self, row: pd.Series, img_size: Tuple[int, int]) -> np.ndarray:
-        seg = np.zeros((len(self.labels), *img_size)) if self.mode == "multilabel" else np.zeros(img_size)
+        seg_size = (len(self.labels), *img_size) if self.mode == "multilabel" else img_size
+        seg = np.zeros(seg_size, dtype=np.uint8)
         for i, lb in enumerate(self.labels):
             rle = row[lb]
             if isinstance(rle, str):
@@ -82,6 +82,7 @@ class TractDataset2D(Dataset):
         }
         if self.transform:
             item = self.transform(item)
+        item["target"] = item["target"].permute(2, 0, 1)
         return item
 
     def __len__(self) -> int:

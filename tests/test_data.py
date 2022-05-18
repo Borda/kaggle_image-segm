@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 from torch.utils.data import Dataset
 
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
@@ -34,6 +35,11 @@ def test_dataset(cls: Dataset, data_dir: str = _ROOT_DATA):
     )
     ds = cls(df_data=tab, path_imgs=data_dir)
     assert len(ds) == 18
+    spl = ds[5]
+    assert spl["input"].dtype == torch.uint8
+    assert spl["input"].shape == torch.Size([3, 310, 360])
+    assert spl["target"].dtype == torch.uint8
+    assert spl["target"].shape == torch.Size([3, 310, 360])
 
 
 def test_datamodule(data_dir: str = _ROOT_DATA):
