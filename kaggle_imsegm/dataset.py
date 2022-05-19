@@ -1,7 +1,6 @@
 import os
 from typing import Any, Callable, Dict, Sequence, Tuple, Type, Union
 
-import albumentations as alb
 import numpy as np
 import pandas as pd
 import torch
@@ -10,8 +9,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
-from kaggle_imsegm.augment import FlashAlbumentationsAdapter
 from kaggle_imsegm.mask import rle_decode
+from kaggle_imsegm.transform import DEFAULT_TRANSFORM, FlashAlbumentationsAdapter
 
 
 class TractDataset2D(Dataset):
@@ -32,13 +31,13 @@ class TractDataset2D(Dataset):
         assert "image_path" in df_data.columns
         self.with_annot = all(c in df_data.columns for c in ["class", "segmentation"])
         if self.with_annot:
-            self.labels = labels if labels else sorted(list(df_data["class"].unique()))
+            self.labels = labels or sorted(list(df_data["class"].unique()))
         self._df_data = self._convert_table(df_data) if self.with_annot else df_data
         self.path_imgs = path_imgs
         self.quantile = img_quantile
         self.norm = img_norm
         self.mode = mode
-        self.transform = transform if transform else FlashAlbumentationsAdapter([])
+        self.transform = transform or FlashAlbumentationsAdapter([])
 
     @staticmethod
     def _convert_table(df):
@@ -98,13 +97,6 @@ class TractDataset2D(Dataset):
         return len(self._df_data)
 
 
-COLOR_MEAN: float = 0.349977
-COLOR_STD: float = 0.215829
-DEFAULT_TRANSFORM = FlashAlbumentationsAdapter(
-    [alb.Resize(224, 224), alb.Normalize(mean=COLOR_MEAN, std=COLOR_STD, max_pixel_value=255)]
-)
-
-
 class TractData(LightningDataModule):
     _df_train: pd.DataFrame
     _df_val: pd.DataFrame
@@ -130,11 +122,11 @@ class TractData(LightningDataModule):
         self._df_predict = df_predict
         self.dataset_dir = dataset_dir
         self.val_split = val_split
-        self.train_transform = train_transform if train_transform else input_transform
+        self.train_transform = train_transform or input_transform
         self.input_transform = input_transform
         self._dataset_cls = dataset_cls
-        self._dataset_kwargs = dataset_kwargs if dataset_kwargs else {}
-        self._dataloader_kwargs = dataloader_kwargs if dataloader_kwargs else {}
+        self._dataset_kwargs = dataset_kwargs or {}
+        self._dataloader_kwargs = dataloader_kwargs or {}
 
     # def prepare_data(self):
     #     pass

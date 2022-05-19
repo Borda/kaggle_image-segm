@@ -10,8 +10,8 @@ from flash.image import SemanticSegmentation, SemanticSegmentationData
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
 
-from kaggle_imsegm.augment import TractFlashSegmentationTransform
-from kaggle_imsegm.models import create_loss
+from kaggle_imsegm.model import create_loss
+from kaggle_imsegm.transform import TractFlashSegmentationTransform
 
 
 def main(

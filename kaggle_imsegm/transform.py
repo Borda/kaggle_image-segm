@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import albumentations as alb
 
@@ -8,8 +8,12 @@ from albumentations import Compose
 from albumentations.pytorch import ToTensorV2
 
 from flash.core.data.io.input_transform import InputTransform
+from flash.core.data.io.output_transform import OutputTransform
 from flash.image.segmentation.input_transform import prepare_target, remove_extra_dimensions
 from torch import nn, Tensor
+
+COLOR_MEAN: float = 0.349977
+COLOR_STD: float = 0.215829
 
 
 class FlashAlbumentationsAdapter(nn.Module):
@@ -52,6 +56,11 @@ class FlashAlbumentationsAdapter(nn.Module):
         else:
             x = x_["image"]
         return x
+
+
+DEFAULT_TRANSFORM = FlashAlbumentationsAdapter(
+    [alb.Resize(224, 224), alb.Normalize(mean=COLOR_MEAN, std=COLOR_STD, max_pixel_value=255)]
+)
 
 
 @dataclass
@@ -107,3 +116,49 @@ class TractFlashSegmentationTransform(InputTransform):
 
     def serve_per_batch_transform(self) -> Callable:
         return remove_extra_dimensions
+
+
+def default_uncollate(batch: Any) -> List[Any]:
+    """This function is used to uncollate a batch into samples. The following conditions are used.
+
+    >>> import torch
+    >>> from pprint import pprint
+    >>> batch = {"input": torch.zeros([5, 3, 224, 224]), "target": torch.zeros([5, 3, 224, 224]),
+    ...          "metadata": {
+    ...             'size': [torch.tensor([266, 266, 266, 266, 266]), torch.tensor([266, 266, 266, 266, 266])],
+    ...             'height': torch.tensor([266, 266, 266, 266, 266]),
+    ...             'width': torch.tensor([266, 266, 266, 266, 266])
+    ... }}
+    >>> bbatch = default_uncollate(batch)
+    >>> len(bbatch)
+    5
+    >>> print(bbatch[0].keys())
+    dict_keys(['input', 'target', 'metadata'])
+    >>> print(bbatch[0]["input"].size(), bbatch[0]["target"].size())
+    torch.Size([3, 224, 224]) torch.Size([3, 224, 224])
+    >>> pprint(bbatch[0]["metadata"])
+    {'height': tensor(266),
+     'size': (tensor(266), tensor(266)),
+     'width': tensor(266)}
+    """
+    if isinstance(batch, dict):
+        elements = [default_uncollate(element) for element in batch.values()]
+        return [dict(zip(batch.keys(), element)) for element in zip(*elements)]
+    if isinstance(batch, (list, tuple)):
+        return list(zip(*batch))
+    return list(batch)
+
+
+class SemanticSegmentationOutputTransform(OutputTransform):
+    def per_sample_transform(self, sample: Any) -> Any:
+        resize = alb.Resize(*[s.item() for s in sample["metadata"]["size"]])
+        sample["input"] = sample["input"].numpy()
+        if sample["input"].ndim == 3:
+            sample["input"] = np.rollaxis(sample["input"], 0, 3)
+        sample["input"] = resize(image=sample["input"])["image"]
+        sample["preds"] = [resize(image=pred)["image"] for pred in sample["preds"].numpy()]
+        return super().per_sample_transform(sample)
+
+    @staticmethod
+    def uncollate(batch: Any) -> Any:
+        return default_uncollate(batch)
