@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
 from kaggle_imsegm.dataset import TractData, TractDataset2D
+from kaggle_imsegm.visual import show_tract_datamodule_samples_2d
 from tests import _ROOT_DATA
 
 
@@ -80,3 +81,5 @@ def test_datamodule(data_dir: str = _ROOT_DATA):
     assert list(dm.train_dataloader())
     assert list(dm.val_dataloader())
     assert list(dm.predict_dataloader())
+
+    show_tract_datamodule_samples_2d(dm.predict_dataloader())

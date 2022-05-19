@@ -104,6 +104,7 @@ class TractData(LightningDataModule):
     dataset_train: Dataset
     dataset_val: Dataset
     dataset_pred: Dataset
+    labels: Sequence[str]
 
     def __init__(
         self,
@@ -137,15 +138,15 @@ class TractData(LightningDataModule):
         np.random.shuffle(case_days)
         val_offset = int(self.val_split * len(case_days))
         val_ = case_days[-val_offset:]
-        labels = list(self._df_train["class"].unique())
+        self.labels = list(self._df_train["class"].unique())
 
         df_train = self._df_train[~self._df_train["Case_Day"].isin(val_)]
         self.dataset_train = self._dataset_cls(
-            df_train, self.dataset_dir, transform=self.train_transform, labels=labels, **self._dataset_kwargs
+            df_train, self.dataset_dir, transform=self.train_transform, labels=self.labels, **self._dataset_kwargs
         )
         df_val = self._df_train[self._df_train["Case_Day"].isin(val_)]
         self.dataset_val = self._dataset_cls(
-            df_val, self.dataset_dir, transform=self.input_transform, labels=labels, **self._dataset_kwargs
+            df_val, self.dataset_dir, transform=self.input_transform, labels=self.labels, **self._dataset_kwargs
         )
         if self._df_predict is not None:
             self.dataset_pred = self._dataset_cls(

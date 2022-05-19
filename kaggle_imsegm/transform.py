@@ -152,11 +152,11 @@ def default_uncollate(batch: Any) -> List[Any]:
 class SemanticSegmentationOutputTransform(OutputTransform):
     def per_sample_transform(self, sample: Any) -> Any:
         resize = alb.Resize(*[s.item() for s in sample["metadata"]["size"]])
-        sample["input"] = sample["input"].numpy()
+        sample["input"] = sample["input"].cpu().numpy()
         if sample["input"].ndim == 3:
             sample["input"] = np.rollaxis(sample["input"], 0, 3)
         sample["input"] = resize(image=sample["input"])["image"]
-        sample["preds"] = [resize(image=pred)["image"] for pred in sample["preds"].numpy()]
+        sample["preds"] = [resize(image=pred)["image"] for pred in sample["preds"].cpu().numpy()]
         return super().per_sample_transform(sample)
 
     @staticmethod

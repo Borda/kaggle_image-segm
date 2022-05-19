@@ -7,6 +7,7 @@ import pandas as pd
 from matplotlib import patches, pyplot as plt
 from matplotlib.path import Path
 from skimage import color
+from torch.utils.data import DataLoader
 
 from kaggle_imsegm.data_io import create_cells_instances_mask
 
@@ -59,3 +60,30 @@ def show_tract_volume(vol: np.ndarray, segm: np.ndarray, z: int, y: int, x: int,
     _set_axes_labels(axarr[1, 0], "X", "Z")
     axarr[1, 1].set_axis_off()
     fig.tight_layout()
+
+
+def show_tract_datamodule_samples_2d(dl: DataLoader, nb: int = 5, skip_empty: bool = True) -> plt.Figure:
+    fig, axarr = plt.subplots(ncols=4, nrows=nb, figsize=(4 * 4, 4 * nb))
+    running_i = 0
+
+    for batch in dl:
+        # print(batch.keys())
+        for i in range(len(batch["input"])):
+            if running_i >= nb:
+                break
+            img = batch["input"][i].cpu().numpy()
+            img = np.rollaxis(img, 0, 3)
+            axarr[running_i, 0].imshow(img)
+            if "target" not in batch:
+                running_i += 1
+                continue
+            segm = batch["target"][i].numpy()
+            if skip_empty and np.max(segm) < 1:
+                continue
+            # print(img.shape, img.dtype, img.max(), img.dtype)
+            for j in range(segm.shape[0]):
+                axarr[running_i, j + 1].imshow(segm[j, ...])
+            running_i += 1
+        if running_i >= nb:
+            break
+    return fig
