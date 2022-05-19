@@ -75,6 +75,7 @@ def test_datamodule(data_dir: str = _ROOT_DATA):
         dataloader_kwargs=dict(batch_size=3, num_workers=2),
     )
     dm.setup()
+    assert len(dm.labels) == 3
     assert len(dm.train_dataloader()) == 5
     assert len(dm.val_dataloader()) == 2
     assert len(dm.predict_dataloader()) == 6

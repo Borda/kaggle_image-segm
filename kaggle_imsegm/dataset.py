@@ -99,12 +99,13 @@ class TractDataset2D(Dataset):
 
 class TractData(LightningDataModule):
     _df_train: pd.DataFrame
-    _df_val: pd.DataFrame
+    _df_predict: pd.DataFrame
     _dataset_cls: Union[Type[TractDataset2D]]
-    dataset_train: Dataset
-    dataset_val: Dataset
-    dataset_pred: Dataset
-    labels: Sequence[str]
+    dataset_train: Dataset = None
+    dataset_val: Dataset = None
+    dataset_pred: Dataset = None
+    labels: Sequence[str] = None
+    _setup_completed: bool = False
 
     def __init__(
         self,
@@ -133,6 +134,8 @@ class TractData(LightningDataModule):
     #     pass
 
     def setup(self, stage=None) -> None:
+        if self._setup_completed:
+            return
         self._df_train["Case_Day"] = [f"case{r['Case']}_day{r['Day']}" for _, r in self._df_train.iterrows()]
         case_days = list(self._df_train["Case_Day"].unique())
         np.random.shuffle(case_days)
@@ -152,6 +155,7 @@ class TractData(LightningDataModule):
             self.dataset_pred = self._dataset_cls(
                 self._df_predict, self.dataset_dir, transform=self.input_transform, **self._dataset_kwargs
             )
+        self._setup_completed = True
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.dataset_train, shuffle=True, **self._dataloader_kwargs)
