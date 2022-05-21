@@ -1,4 +1,4 @@
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __docs__ = "Tooling for Kaggle ..."
 __author__ = "Jiri Borovec"
 __author_email__ = "jirka@pytorchlightning.ai"
