@@ -10,7 +10,7 @@ from flash.image import SemanticSegmentation, SemanticSegmentationData
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger
 
-from kaggle_imsegm.model import create_loss
+from kaggle_imsegm.model import MixedLoss
 from kaggle_imsegm.transform import TractFlashSegmentationTransform
 
 
@@ -61,7 +61,7 @@ def main(
         optimizer=optimizer,
         learning_rate=learning_rate,
         lr_scheduler=lr_scheduler,
-        loss_fn=create_loss().get(loss),
+        loss_fn=MixedLoss(loss),
         num_classes=datamodule.num_classes,
     )
 
