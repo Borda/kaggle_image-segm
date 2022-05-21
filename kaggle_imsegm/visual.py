@@ -62,8 +62,10 @@ def show_tract_volume(vol: np.ndarray, segm: np.ndarray, z: int, y: int, x: int,
     fig.tight_layout()
 
 
-def show_tract_datamodule_samples_2d(dl: DataLoader, nb: int = 5, skip_empty: bool = True) -> plt.Figure:
-    fig, axarr = plt.subplots(ncols=4, nrows=nb, figsize=(4 * 4, 4 * nb))
+def show_tract_datamodule_samples_2d(
+    dl: DataLoader, nb: int = 5, skip_empty: bool = True, fig_size_unit: float = 2.5
+) -> plt.Figure:
+    fig, axarr = plt.subplots(ncols=4, nrows=nb, figsize=(fig_size_unit * 4, fig_size_unit * nb))
     running_i = 0
 
     for batch in dl:
