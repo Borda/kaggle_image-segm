@@ -8,7 +8,7 @@ ipywidgets
 scikit-image
 albumentations>=1.0
 fire
-lightning-flash[image]>=0.7.3
+lightning-flash[image] @ https://github.com/PyTorchLightning/lightning-flash/archive/refs/heads/segm/multi-label.zip
 # timm>=0.5.4
 segmentation-models-pytorch>=0.2.1
 wandb

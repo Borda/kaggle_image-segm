@@ -25,7 +25,7 @@ class MixedLoss:
         if mode == "multilabel":
             losses["bce"] = SoftBCEWithLogitsLoss(smooth_factor=smooth)
         self.names = [name] if isinstance(name, str) else name
-        assert all(n in losses for n in self.names)
+        assert all(n in losses for n in self.names), f"unrecognised one of {self.names} among {losses.keys()}"
         self.losses = [losses[n] for n in self.names]
         if not ratio:
             ratio = [1.0 / len(self.names)] * len(self.names)

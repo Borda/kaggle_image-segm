@@ -58,7 +58,7 @@ def test_dataset_predict_2d(data_dir: str = _ROOT_DATA):
 
 def test_datamodule(data_dir: str = _ROOT_DATA):
     np.random.seed(42)
-    tab_train = pd.read_csv(os.path.join(_ROOT_DATA, "train.csv"))
+    tab_train = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab_train[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab_train["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
     )
