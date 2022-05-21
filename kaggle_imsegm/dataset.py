@@ -27,6 +27,7 @@ class TractDataset2D(Dataset):
         img_norm: bool = True,
         labels: Sequence[str] = None,
         mode: str = "multilabel",
+        label_dtype=np.uint8,
     ):
         assert "image_path" in df_data.columns
         self.with_annot = all(c in df_data.columns for c in ["class", "segmentation"])
@@ -38,6 +39,7 @@ class TractDataset2D(Dataset):
         self.norm = img_norm
         self.mode = mode
         self.transform = transform or FlashAlbumentationsAdapter([])
+        self._label_dtype = label_dtype
 
     @staticmethod
     def _convert_table(df):
@@ -65,7 +67,7 @@ class TractDataset2D(Dataset):
 
     def _load_annot(self, row: pd.Series, img_size: Tuple[int, int]) -> np.ndarray:
         seg_size = (len(self.labels), *img_size) if self.mode == "multilabel" else img_size
-        seg = np.zeros(seg_size, dtype=np.uint8)
+        seg = np.zeros(seg_size, dtype=self._label_dtype)
         for i, lb in enumerate(self.labels):
             rle = row[lb]
             if isinstance(rle, str):

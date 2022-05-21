@@ -82,7 +82,7 @@ def show_tract_datamodule_samples_2d(
             segm = batch["target"][i].numpy()
             if skip_empty and np.max(segm) < 1:
                 continue
-            # print(img.shape, img.dtype, img.max(), img.dtype)
+            # print(img.shape, img.min(), img.max(), img.dtype)
             for j in range(segm.shape[0]):
                 axarr[running_i, j + 1].imshow(segm[j, ...])
             running_i += 1

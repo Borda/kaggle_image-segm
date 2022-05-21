@@ -72,6 +72,7 @@ def test_datamodule(data_dir: str = _ROOT_DATA):
         df_predict=tab_pred,
         dataset_dir=data_dir,
         val_split=0.25,
+        dataset_kwargs=dict(label_dtype=np.float32),
         dataloader_kwargs=dict(batch_size=3, num_workers=2),
     )
     dm.setup()
