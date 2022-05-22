@@ -1,5 +1,5 @@
 import os
-from typing import Any, Callable, Dict, Sequence, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,7 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
 
+from kaggle_imsegm.data_io import create_tract_segmentation, load_volume_from_images
 from kaggle_imsegm.mask import rle_decode
 from kaggle_imsegm.transform import DEFAULT_TRANSFORM, FlashAlbumentationsAdapter
 
@@ -16,7 +17,7 @@ from kaggle_imsegm.transform import DEFAULT_TRANSFORM, FlashAlbumentationsAdapte
 class TractDataset(Dataset):
     """Basic dataset."""
 
-    _df_data: pd.DataFrame
+    _df_data: Union[pd.DataFrame, Sequence[pd.DataFrame]]
     labels: Sequence[str]
     transform: Callable
 
@@ -43,25 +44,23 @@ class TractDataset(Dataset):
             self.transform = transform
         self._label_dtype = label_dtype
 
-    def _load_image(self, img_path: str) -> np.ndarray:
+    def _load_image(self, idx: int) -> np.ndarray:
         raise NotImplementedError()
 
-    def _load_annot(self, row: pd.Series, img_size: Tuple[int, int]) -> np.ndarray:
+    def _load_annot(self, idx: int, img_size: tuple) -> np.ndarray:
         raise NotImplementedError()
 
     def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
         raise NotImplementedError()
 
-    def __getitem__(self, idx: int):
-        row = self._df_data.iloc[idx]
-        img_path = os.path.join(self.img_folder, row["image_path"])
-        img = self._load_image(img_path)
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        img = self._load_image(idx)
         item = {
             "input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)),
             "metadata": self._metadata(img),
         }
         if self.with_annot:
-            seg = self._load_annot(row, img.shape)
+            seg = self._load_annot(idx, img.shape)
             item["target"] = torch.from_numpy(np.rollaxis(seg, 0, 3))
         if self.transform:
             item = self.transform(item)
@@ -70,7 +69,7 @@ class TractDataset(Dataset):
         return item
 
     def __len__(self) -> int:
-        raise NotImplementedError()
+        return len(self._df_data)
 
 
 class TractDataset2D(TractDataset):
@@ -93,7 +92,7 @@ class TractDataset2D(TractDataset):
         self._df_data = self._convert_table(df_data) if self.with_annot else df_data
 
     @staticmethod
-    def _convert_table(df):
+    def _convert_table(df: pd.DataFrame) -> pd.DataFrame:
         """Convert table to row per images and column per class."""
         rows = []
         for id_, dfg in tqdm(df.groupby("id")):
@@ -105,7 +104,8 @@ class TractDataset2D(TractDataset):
             rows.append(row)
         return pd.DataFrame(rows)
 
-    def _load_image(self, img_path: str) -> np.ndarray:
+    def _load_image(self, idx: int) -> np.ndarray:
+        img_path = os.path.join(self.img_folder, self._df_data.iloc[idx]["image_path"])
         img = np.array(Image.open(img_path))
         if self.quantile:
             q_low, q_high = np.percentile(img, [self.quantile * 100, (1 - self.quantile) * 100])
@@ -116,7 +116,8 @@ class TractDataset2D(TractDataset):
             img = (img * 255).astype(np.uint8)
         return img
 
-    def _load_annot(self, row: pd.Series, img_size: Tuple[int, int]) -> np.ndarray:
+    def _load_annot(self, idx: int, img_size: Tuple[int, int]) -> np.ndarray:
+        row = self._df_data.iloc[idx]
         seg_size = (len(self.labels), *img_size) if self.mode == "multilabel" else img_size
         seg = np.zeros(seg_size, dtype=self._label_dtype)
         for i, lb in enumerate(self.labels):
@@ -132,8 +133,44 @@ class TractDataset2D(TractDataset):
         h, w = img.shape
         return dict(size=(h, w), height=h, width=w)
 
-    def __len__(self) -> int:
-        return len(self._df_data)
+
+class TractDataset3D(TractDataset):
+    """3D dataset."""
+
+    # transform: Callable = FlashAlbumentationsAdapter([])
+
+    def __init__(
+        self,
+        df_data: pd.DataFrame,
+        path_imgs: str,
+        transform: Callable = None,
+        img_quantile: float = 0.01,
+        img_norm: bool = True,
+        labels: Sequence[str] = None,
+        mode: str = "multilabel",
+        label_dtype=np.uint8,
+    ):
+        super().__init__(df_data, path_imgs, transform, img_quantile, img_norm, labels, mode, label_dtype)
+        self._df_data = self._convert_table(df_data)
+
+    @staticmethod
+    def _convert_table(df: pd.DataFrame) -> List[pd.DataFrame]:
+        """Convert table to row per images and column per class."""
+        df["Case_Day"] = [f"case{r['Case']}_day{r['Day']}" for _, r in df.iterrows()]
+        dfs = [dfg for _, dfg in df.groupby("Case_Day")]
+        return dfs
+
+    def _load_image(self, idx: int) -> np.ndarray:
+        img_path = os.path.join(self.img_folder, self._df_data[idx].iloc[0]["image_path"])
+        return load_volume_from_images(os.path.dirname(img_path), quantile=self.quantile, norm=self.norm)
+
+    def _load_annot(self, idx: int, img_size: Tuple[int, int, int]) -> np.ndarray:
+        return create_tract_segmentation(
+            self._df_data[idx], vol_shape=img_size, mode=self.mode, labels=self.labels, label_dtype=self._label_dtype
+        )
+
+    def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
+        return dict(shape=img.shape)
 
 
 class TractData(LightningDataModule):

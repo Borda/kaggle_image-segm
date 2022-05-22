@@ -3,11 +3,10 @@ import os
 
 import numpy as np
 import pandas as pd
-import pytest
 import torch
 
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
-from kaggle_imsegm.dataset import TractData, TractDataset, TractDataset2D
+from kaggle_imsegm.dataset import TractData, TractDataset2D
 from kaggle_imsegm.visual import show_tract_datamodule_samples_2d
 from tests import _ROOT_DATA
 
@@ -26,15 +25,18 @@ def test_load_volume(data_dir: str = _ROOT_DATA):
     tab_cd["Slice"] = tab_cd["Slice"].apply(lambda s: int((int(s) - 55) / 10 + 1))
     seg = create_tract_segmentation(tab_cd, vol_shape=vol.shape)
     assert seg.shape == (8, 310, 360)
+    assert seg.dtype == np.uint8
+    seg = create_tract_segmentation(tab_cd, vol_shape=vol.shape, mode="multilabel", label_dtype=bool)
+    assert seg.shape == (3, 8, 310, 360)
+    assert seg.dtype == bool
 
 
-@pytest.mark.parametrize("cls", [TractDataset2D])
-def test_dataset(cls: TractDataset, data_dir: str = _ROOT_DATA):
+def test_dataset_2d(data_dir: str = _ROOT_DATA):
     tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
     )
-    ds = cls(df_data=tab, path_imgs=data_dir)
+    ds = TractDataset2D(df_data=tab, path_imgs=data_dir)
     assert len(ds) == 18
     spl = ds[5]
     assert spl["input"].dtype == torch.uint8
@@ -43,13 +45,13 @@ def test_dataset(cls: TractDataset, data_dir: str = _ROOT_DATA):
     assert spl["target"].shape == torch.Size([3, 310, 360])
 
 
-def test_dataset_predict_2d(data_dir: str = _ROOT_DATA):
+def test_dataset_2d_predict(data_dir: str = _ROOT_DATA):
     ls_imgs = glob.glob(os.path.join(data_dir, "**", "*.png"), recursive=True)
     ls_imgs = [p.replace(data_dir + os.path.sep, "") for p in sorted(ls_imgs)]
     tab = pd.DataFrame({"image_path": ls_imgs})
     ds = TractDataset2D(df_data=tab, path_imgs=data_dir)
     assert len(ds) == 18
-    spl = ds[5]
+    spl = ds[3]
     assert spl["input"].dtype == torch.uint8
     assert spl["input"].shape == torch.Size([3, 310, 360])
     assert "target" not in spl

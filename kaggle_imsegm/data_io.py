@@ -12,12 +12,13 @@ from torch import Tensor
 from kaggle_imsegm.mask import rle_decode
 
 
-def load_volume_from_images(img_dir: str, quantile: float = 0.01) -> np.ndarray:
+def load_volume_from_images(img_dir: str, quantile: float = 0.01, norm: bool = True) -> np.ndarray:
     """Load X-ray volume constructed from images/scans in vertical direction.
 
     Args:
         img_dir: path to folder with images, where each image is volume slice
         quantile: remove some intensity extreme
+        norm: normalize image in range 0 - 255
     """
     img_paths = sorted(glob.glob(os.path.join(img_dir, "*.png")))
     imgs = [np.array(Image.open(p)).tolist() for p in img_paths]
@@ -26,39 +27,49 @@ def load_volume_from_images(img_dir: str, quantile: float = 0.01) -> np.ndarray:
     if quantile:
         q_low, q_high = np.percentile(vol, [quantile * 100, (1 - quantile) * 100])
         vol = np.clip(vol, q_low, q_high)
-    v_min, v_max = np.min(vol), np.max(vol)
-    vol = (vol - v_min) / float(v_max - v_min)
-    vol = (vol * 255).astype(np.uint8)
+    if norm:
+        v_min, v_max = np.min(vol), np.max(vol)
+        vol = (vol - v_min) / float(v_max - v_min)
+        vol = (vol * 255).astype(np.uint8)
     return vol
 
 
 def create_tract_segmentation(
-    df_vol: DataFrame, vol_shape: Tuple[int, int, int], labels: Optional[Sequence[str]] = None
+    df_vol: DataFrame,
+    vol_shape: Tuple[int, int, int],
+    mode: str = "multiclass",
+    labels: Optional[Sequence[str]] = None,
+    label_dtype=np.uint8,
 ) -> np.ndarray:
     """Create 3D segmentation if tracts.
 
     Args:
         df_vol: dataframe with filtered resorts just for one volume and segmentation ans RLE
+        mode: select type of annotation
         vol_shape: shape of the resulting volume
         labels: list of selected classes
+        label_dtype: data type
     """
     assert all(c in df_vol.columns for c in ["Slice", "class", "segmentation"])
     df_vol = df_vol.replace(np.nan, "")
-    segm = np.zeros(vol_shape, dtype=np.uint8)
     if not labels:
         labels = sorted(df_vol["class"].unique())
     else:
         df_labels = tuple(df_vol["class"].unique())
         assert all(lb in labels for lb in df_labels), df_labels
+    if mode == "multilabel":
+        vol_shape = (len(labels),) + vol_shape
+    segm = np.zeros(vol_shape, dtype=label_dtype)
     for idx_, dfg in df_vol.groupby("Slice"):
         idx = int(idx_) - 1
-        mask = segm[idx, :, :]
         for _, (lb, rle) in dfg[["class", "segmentation"]].iterrows():
-            lb = labels.index(lb) + 1
+            lb = labels.index(lb)
             if not rle or not isinstance(rle, str):
                 continue
-            mask = rle_decode(rle, img=mask, label=lb)
-        segm[idx, :, :] = mask
+            if mode == "multilabel":
+                segm[lb, idx, :, :] = rle_decode(rle, img=segm[lb, idx, :, :], label=1)
+            else:
+                segm[idx, :, :] = rle_decode(rle, img=segm[idx, :, :], label=lb + 1)
         # plt.figure(); plt.imshow(mask)
     return segm
 
