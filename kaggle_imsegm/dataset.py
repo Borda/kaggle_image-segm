@@ -13,10 +13,12 @@ from kaggle_imsegm.mask import rle_decode
 from kaggle_imsegm.transform import DEFAULT_TRANSFORM, FlashAlbumentationsAdapter
 
 
-class TractDataset2D(Dataset):
-    """Basic 2D dataset."""
+class TractDataset(Dataset):
+    """Basic dataset."""
 
+    _df_data: pd.DataFrame
     labels: Sequence[str]
+    transform: Callable
 
     def __init__(
         self,
@@ -33,13 +35,62 @@ class TractDataset2D(Dataset):
         self.with_annot = all(c in df_data.columns for c in ["class", "segmentation"])
         if self.with_annot:
             self.labels = labels or sorted(list(df_data["class"].unique()))
-        self._df_data = self._convert_table(df_data) if self.with_annot else df_data
-        self.path_imgs = path_imgs
+        self.img_folder = path_imgs
         self.quantile = img_quantile
         self.norm = img_norm
         self.mode = mode
-        self.transform = transform or FlashAlbumentationsAdapter([])
+        if transform:
+            self.transform = transform
         self._label_dtype = label_dtype
+
+    def _load_image(self, img_path: str) -> np.ndarray:
+        raise NotImplementedError()
+
+    def _load_annot(self, row: pd.Series, img_size: Tuple[int, int]) -> np.ndarray:
+        raise NotImplementedError()
+
+    def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
+        raise NotImplementedError()
+
+    def __getitem__(self, idx: int):
+        row = self._df_data.iloc[idx]
+        img_path = os.path.join(self.img_folder, row["image_path"])
+        img = self._load_image(img_path)
+        item = {
+            "input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)),
+            "metadata": self._metadata(img),
+        }
+        if self.with_annot:
+            seg = self._load_annot(row, img.shape)
+            item["target"] = torch.from_numpy(np.rollaxis(seg, 0, 3))
+        if self.transform:
+            item = self.transform(item)
+        if self.with_annot:
+            item["target"] = item["target"].permute(2, 0, 1)
+        return item
+
+    def __len__(self) -> int:
+        raise NotImplementedError()
+
+
+class TractDataset2D(TractDataset):
+    """2D dataset."""
+
+    transform: Callable = FlashAlbumentationsAdapter([])
+
+    def __init__(
+        self,
+        df_data: pd.DataFrame,
+        path_imgs: str,
+        transform: Callable = None,
+        img_quantile: float = 0.01,
+        img_norm: bool = True,
+        labels: Sequence[str] = None,
+        mode: str = "multilabel",
+        label_dtype=np.uint8,
+    ):
+        super().__init__(df_data, path_imgs, transform, img_quantile, img_norm, labels, mode, label_dtype)
+        self._df_data = self._convert_table(df_data) if self.with_annot else df_data
 
     @staticmethod
     def _convert_table(df):
@@ -77,23 +128,9 @@ class TractDataset2D(Dataset):
                     seg = rle_decode(rle, img=seg, label=i + 1)
         return seg
 
-    def __getitem__(self, idx: int):
-        row = self._df_data.iloc[idx]
-        img_path = os.path.join(self.path_imgs, row["image_path"])
-        img = self._load_image(img_path)
+    def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
         h, w = img.shape
-        item = {
-            "input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)),
-            "metadata": dict(size=(h, w), height=h, width=w),
-        }
-        if self.with_annot:
-            seg = self._load_annot(row, img.shape)
-            item["target"] = torch.from_numpy(np.rollaxis(seg, 0, 3))
-        if self.transform:
-            item = self.transform(item)
-        if self.with_annot:
-            item["target"] = item["target"].permute(2, 0, 1)
-        return item
+        return dict(size=(h, w), height=h, width=w)
 
     def __len__(self) -> int:
         return len(self._df_data)

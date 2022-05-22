@@ -48,7 +48,7 @@ def test_model_train_predict(data_dir: str = _ROOT_DATA):
         head="unetplusplus",
         pretrained=True,
         learning_rate=2e-3,
-        loss_fn=MixedLoss("bce", "dice"),
+        loss_fn=MixedLoss("bce", "dice", smooth=0.0),
         num_classes=3,
         multi_label=True,
         output_transform=SemanticSegmentationOutputTransform(),

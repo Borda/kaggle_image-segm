@@ -5,10 +5,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
-from torch.utils.data import Dataset
 
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
-from kaggle_imsegm.dataset import TractData, TractDataset2D
+from kaggle_imsegm.dataset import TractData, TractDataset, TractDataset2D
 from kaggle_imsegm.visual import show_tract_datamodule_samples_2d
 from tests import _ROOT_DATA
 
@@ -30,7 +29,7 @@ def test_load_volume(data_dir: str = _ROOT_DATA):
 
 
 @pytest.mark.parametrize("cls", [TractDataset2D])
-def test_dataset(cls: Dataset, data_dir: str = _ROOT_DATA):
+def test_dataset(cls: TractDataset, data_dir: str = _ROOT_DATA):
     tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
