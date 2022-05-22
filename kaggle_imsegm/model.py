@@ -12,9 +12,16 @@ class SoftBCEWithLogitsLoss(smp.losses.SoftBCEWithLogitsLoss):
 
 
 class MixedLoss:
+    """Mixing multiple losses.
+
+    >>> ml = MixedLoss("focal")
+    >>> ml = MixedLoss("bce", "dice")
+    """
+
     def __init__(
-        self, name: Sequence[str], mode: str = "multilabel", smooth: float = 0.01, ratio: Sequence[float] = None
+        self, *name: str, mode: str = "multilabel", smooth: float = 0.01, ratio: Sequence[float] = None
     ) -> None:
+        assert mode in {smp.losses.BINARY_MODE, smp.losses.MULTILABEL_MODE, smp.losses.MULTICLASS_MODE}
         losses = {
             "dice": smp.losses.DiceLoss(mode=mode, smooth=smooth),
             "focal": smp.losses.FocalLoss(mode=mode),
@@ -29,6 +36,7 @@ class MixedLoss:
         self.losses = [losses[n] for n in self.names]
         if not ratio:
             ratio = [1.0 / len(self.names)] * len(self.names)
+        assert len(self.names) == len(ratio)
         self.ratio = np.array(ratio, dtype=float) / sum(ratio)
 
     def __call__(self, y_pred: Tensor, y_true: Tensor) -> Tensor:

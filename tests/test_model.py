@@ -16,9 +16,9 @@ from kaggle_imsegm.transform import SemanticSegmentationOutputTransform
 from tests import _ROOT_DATA
 
 
-@pytest.mark.parametrize("losses", ["dice", ("bce", "tversky")])
+@pytest.mark.parametrize("losses", [("dice",), ("bce", "tversky")])
 def test_losses(losses):
-    ml = MixedLoss(losses)
+    ml = MixedLoss(*losses)
     y_pred = torch.rand((5, 3, 64, 64))
     y_true = torch.rand((5, 3, 64, 64))
     ml(y_pred, y_true)
@@ -48,7 +48,7 @@ def test_model_train_predict(data_dir: str = _ROOT_DATA):
         head="unetplusplus",
         pretrained=True,
         learning_rate=2e-3,
-        loss_fn=MixedLoss("bce"),
+        loss_fn=MixedLoss("bce", "dice"),
         num_classes=3,
         multi_label=True,
         output_transform=SemanticSegmentationOutputTransform(),
