@@ -11,7 +11,7 @@ from tqdm.auto import tqdm
 
 from kaggle_imsegm.data_io import create_tract_segmentation, load_volume_from_images
 from kaggle_imsegm.mask import rle_decode
-from kaggle_imsegm.transform import DEFAULT_TRANSFORM, FlashAlbumentationsAdapter
+from kaggle_imsegm.transform import DEFAULT_TRANSFORM_2D, FlashAlbumentationsAdapter
 
 
 class TractDataset(Dataset):
@@ -19,7 +19,7 @@ class TractDataset(Dataset):
 
     _df_data: Union[pd.DataFrame, Sequence[pd.DataFrame]]
     labels: Sequence[str]
-    transform: Callable
+    transform: Callable = None
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class TractDataset(Dataset):
     def _load_image(self, idx: int) -> np.ndarray:
         raise NotImplementedError()
 
-    def _load_annot(self, idx: int, img_size: tuple) -> np.ndarray:
+    def _load_annot(self, idx: int, img_shape: tuple) -> np.ndarray:
         raise NotImplementedError()
 
     def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
@@ -56,16 +56,13 @@ class TractDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         img = self._load_image(idx)
         item = {
-            "input": torch.from_numpy(np.repeat(img[..., np.newaxis], 3, axis=2)),
+            "input": torch.from_numpy(img),
             "metadata": self._metadata(img),
         }
         if self.with_annot:
-            seg = self._load_annot(idx, img.shape)
-            item["target"] = torch.from_numpy(np.rollaxis(seg, 0, 3))
+            item["target"] = torch.from_numpy(self._load_annot(idx, img.shape))
         if self.transform:
             item = self.transform(item)
-        if self.with_annot:
-            item["target"] = item["target"].permute(2, 0, 1)
         return item
 
     def __len__(self) -> int:
@@ -104,7 +101,7 @@ class TractDataset2D(TractDataset):
             rows.append(row)
         return pd.DataFrame(rows)
 
-    def _load_image(self, idx: int) -> np.ndarray:
+    def _load_image(self, idx: int, as_rgb: bool = True) -> np.ndarray:
         img_path = os.path.join(self.img_folder, self._df_data.iloc[idx]["image_path"])
         img = np.array(Image.open(img_path))
         if self.quantile:
@@ -114,24 +111,33 @@ class TractDataset2D(TractDataset):
             v_min, v_max = np.min(img), np.max(img)
             img = (img - v_min) / float(v_max - v_min)
             img = (img * 255).astype(np.uint8)
+        if as_rgb:
+            img = np.repeat(img[..., np.newaxis], 3, axis=2)
         return img
 
-    def _load_annot(self, idx: int, img_size: Tuple[int, int]) -> np.ndarray:
+    def _load_annot(self, idx: int, img_shape: Tuple[int, int]) -> np.ndarray:
         row = self._df_data.iloc[idx]
-        seg_size = (len(self.labels), *img_size) if self.mode == "multilabel" else img_size
+        img_size = img_shape[:2]  # in case you pass RGB image
+        seg_size = (*img_size, len(self.labels)) if self.mode == "multilabel" else img_size
         seg = np.zeros(seg_size, dtype=self._label_dtype)
         for i, lb in enumerate(self.labels):
             rle = row[lb]
             if isinstance(rle, str):
                 if self.mode == "multilabel":
-                    seg[i, ...] = rle_decode(rle, img=seg[i, ...])
+                    seg[..., i] = rle_decode(rle, img=seg[..., i])
                 else:
                     seg = rle_decode(rle, img=seg, label=i + 1)
         return seg
 
     def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
-        h, w = img.shape
+        h, w = img.shape[:2]
         return dict(size=(h, w), height=h, width=w)
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        item = super().__getitem__(idx)
+        if "target" in item and item["target"].ndim == 3:
+            item["target"] = item["target"].permute(2, 0, 1)
+        return item
 
 
 class TractDataset3D(TractDataset):
@@ -156,7 +162,7 @@ class TractDataset3D(TractDataset):
     @staticmethod
     def _convert_table(df: pd.DataFrame) -> List[pd.DataFrame]:
         """Convert table to row per images and column per class."""
-        df["Case_Day"] = [f"case{r['Case']}_day{r['Day']}" for _, r in df.iterrows()]
+        df["Case_Day"] = [p.split(os.path.sep)[-3] for p in df["image_path"]]
         dfs = [dfg for _, dfg in df.groupby("Case_Day")]
         return dfs
 
@@ -164,9 +170,9 @@ class TractDataset3D(TractDataset):
         img_path = os.path.join(self.img_folder, self._df_data[idx].iloc[0]["image_path"])
         return load_volume_from_images(os.path.dirname(img_path), quantile=self.quantile, norm=self.norm)
 
-    def _load_annot(self, idx: int, img_size: Tuple[int, int, int]) -> np.ndarray:
+    def _load_annot(self, idx: int, img_shape: Tuple[int, int, int]) -> np.ndarray:
         return create_tract_segmentation(
-            self._df_data[idx], vol_shape=img_size, mode=self.mode, labels=self.labels, label_dtype=self._label_dtype
+            self._df_data[idx], vol_shape=img_shape, mode=self.mode, labels=self.labels, label_dtype=self._label_dtype
         )
 
     def _metadata(self, img: np.ndarray) -> Dict[str, Any]:
@@ -190,7 +196,7 @@ class TractData(LightningDataModule):
         df_predict: pd.DataFrame = None,
         val_split: float = 0.1,
         train_transform: Callable = None,
-        input_transform: Callable = DEFAULT_TRANSFORM,
+        input_transform: Callable = None,
         dataset_cls: Union[Type[TractDataset2D]] = TractDataset2D,
         dataset_kwargs: Dict[str, Any] = None,
         dataloader_kwargs: Dict[str, Any] = None,
@@ -200,14 +206,20 @@ class TractData(LightningDataModule):
         self._df_predict = df_predict
         self.dataset_dir = dataset_dir
         self.val_split = val_split
-        self.train_transform = train_transform or input_transform
-        self.input_transform = input_transform
         self._dataset_cls = dataset_cls
+        self.input_transform = input_transform or self._default_transform()
+        self.train_transform = train_transform or self.input_transform
         self._dataset_kwargs = dataset_kwargs or {}
         self._dataloader_kwargs = dataloader_kwargs or {}
 
     # def prepare_data(self):
     #     pass
+    def _default_transform(self) -> Callable:
+        if self._dataset_cls is TractDataset2D:
+            return DEFAULT_TRANSFORM_2D
+        if self._dataset_cls is TractDataset3D:
+            # todo
+            return lambda x: x
 
     def setup(self, stage=None) -> None:
         if self._setup_completed:
