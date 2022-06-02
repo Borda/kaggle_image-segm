@@ -2,10 +2,9 @@ from dataclasses import dataclass
 from typing import Any, Callable, List, Tuple, Union
 
 import albumentations as alb
-
 import numpy as np
 import torch
-from albumentations import Compose
+from albumentations import Compose, DualTransform
 from albumentations.pytorch import ToTensorV2
 
 from flash.core.data.io.input_transform import InputTransform
@@ -59,9 +58,23 @@ class FlashAlbumentationsAdapter(nn.Module):
         return x
 
 
-DEFAULT_TRANSFORM_2D = FlashAlbumentationsAdapter(
-    [alb.Resize(224, 224), alb.Normalize(mean=COLOR_MEAN, std=COLOR_STD, max_pixel_value=255)]
-)
+class NormImage(DualTransform):
+    def __init__(self, quantile: float = 0.01, norm: bool = True, always_apply=True, p=1):
+        super().__init__(always_apply, p)
+        self.quantile = quantile
+        self.norm = norm
+
+    def apply(self, img, **params):
+        if self.quantile > 0:
+            q_low, q_high = np.percentile(img, [self.quantile * 100, (1 - self.quantile) * 100])
+            img = np.clip(img, q_low, q_high)
+        if self.norm:
+            v_min, v_max = np.min(img), np.max(img)
+            img = (img - v_min) / float(v_max - v_min)
+        return img
+
+    def apply_to_mask(self, mask, **params):
+        return mask
 
 
 @dataclass
@@ -75,6 +88,7 @@ class TractFlashSegmentationTransform(InputTransform):
     def train_per_sample_transform(self) -> Callable:
         return FlashAlbumentationsAdapter(
             [
+                NormImage(always_apply=True),
                 alb.Resize(*self.image_size),
                 alb.VerticalFlip(p=0.5),
                 alb.HorizontalFlip(p=0.5),
@@ -96,14 +110,7 @@ class TractFlashSegmentationTransform(InputTransform):
     def per_sample_transform(self) -> Callable:
         return FlashAlbumentationsAdapter(
             [
-                alb.Resize(*self.image_size),
-                alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
-            ]
-        )
-
-    def predict_input_per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter(
-            [
+                NormImage(always_apply=True),
                 alb.Resize(*self.image_size),
                 alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
             ]
