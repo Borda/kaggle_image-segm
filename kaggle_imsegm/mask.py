@@ -35,7 +35,10 @@ def rle_decode(mask_rle: str, img: np.ndarray = None, img_shape: tuple = None, l
         img = img.flatten()
     for begin, end in zip(starts, ends):
         img[begin:end] = label
-    return img.reshape(img_shape)
+
+    # https://stackoverflow.com/a/46574906/4521646
+    img.shape = img_shape  # inplace reshape
+    return img
 
 
 def rle_encode(mask: np.ndarray, label_bg: int = 0) -> Dict[int, str]:
