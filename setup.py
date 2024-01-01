@@ -10,7 +10,7 @@ from setuptools import find_packages, setup
 
 _PATH_ROOT = os.path.dirname(__file__)
 
-import kaggle_imsegm  # noqa: E402
+import kaggle_imsegm
 
 
 def _load_requirements(path_dir=_PATH_ROOT, comment_char="#"):
