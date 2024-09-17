@@ -3,7 +3,6 @@
 [![CI complete testing](https://github.com/Borda/kaggle_image-segm/actions/workflows/ci_testing.yml/badge.svg?branch=main&event=push)](https://github.com/Borda/kaggle_image-segm/actions/workflows/ci_testing.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Borda/kaggle_image-segm/main.svg)](https://results.pre-commit.ci/latest/github/Borda/kaggle_image-segm/main)
 [![codecov](https://codecov.io/gh/Borda/kaggle_image-segm/branch/main/graph/badge.svg)](https://codecov.io/gh/Borda/kaggle_image-segm)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Borda/kaggle_image-segm/main.svg)](https://results.pre-commit.ci/latest/github/Borda/kaggle_image-segm/main)
 
 ### install this tooling
 
