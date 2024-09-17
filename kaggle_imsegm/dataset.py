@@ -14,9 +14,10 @@ from kaggle_imsegm.data_io import create_tract_segmentation, load_volume_from_im
 from kaggle_imsegm.mask import rle_decode
 from kaggle_imsegm.transform import COLOR_MEAN, COLOR_STD, FlashAlbumentationsAdapter
 
-DEFAULT_TRANSFORM_2D = FlashAlbumentationsAdapter(
-    [alb.Resize(224, 224), alb.Normalize(mean=COLOR_MEAN, std=COLOR_STD, max_pixel_value=255)]
-)
+DEFAULT_TRANSFORM_2D = FlashAlbumentationsAdapter([
+    alb.Resize(224, 224),
+    alb.Normalize(mean=COLOR_MEAN, std=COLOR_STD, max_pixel_value=255),
+])
 
 
 class TractDataset(Dataset):

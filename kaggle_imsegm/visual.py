@@ -3,8 +3,8 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
-
-from matplotlib import patches, pyplot as plt
+from matplotlib import patches
+from matplotlib import pyplot as plt
 from matplotlib.path import Path
 from skimage import color
 from torch.utils.data import DataLoader
