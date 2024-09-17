@@ -1,14 +1,21 @@
-torch>=1.8
+numpy <2.0
+torch >=1.8, <2.0
 torchvision
-pytorch-lightning>=1.5.0
-torchmetrics>=0.6
+pytorch-lightning >=1.5.0, <1.8
+torchmetrics >=0.6, <0.11
+
 matplotlib
-pandas>1.0
+pandas >1.0
 ipywidgets
 scikit-image
-albumentations>=1.0
+
 fire
+joblib
+
+# timm >=0.5.4
+albumentations >=1.0
+segmentation-models-pytorch >=0.2.1
+
 lightning-flash[image] @ https://github.com/PyTorchLightning/lightning-flash/archive/refs/heads/segm/multi-label.zip
-# timm>=0.5.4
-segmentation-models-pytorch>=0.2.1
+
 wandb
