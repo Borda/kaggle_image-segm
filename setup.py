@@ -10,25 +10,23 @@ from setuptools import find_packages, setup
 
 _PATH_ROOT = os.path.dirname(__file__)
 
-import kaggle_imsegm
+import kaggle_imsegm  # noqa: E402
 
 
-def _load_requirements(path_dir=_PATH_ROOT, comment_char="#"):
+def _load_requirements(path_dir: str = _PATH_ROOT, comment_char: str = "#") -> list:
     with open(os.path.join(path_dir, "requirements.txt")) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = [ln[: ln.index(comment_char)] if comment_char in ln else ln for ln in lines]
-    reqs = [ln for ln in reqs if ln and not any(s in ln for s in ["http://", "https://"])]
-    return reqs
+    return [ln for ln in reqs if ln and not any(s in ln for s in ["http://", "https://"])]
 
 
-def _load_long_description():
+def _load_long_description() -> str:
     url = os.path.join(kaggle_imsegm.__homepage__, "raw", kaggle_imsegm.__version__, "docs")
     text = open("README.md", encoding="utf-8").read()
     # replace relative repository path to absolute link to the release
     text = text.replace("](docs", f"]({url}")
     # SVG images are not readable on PyPI, so replace them  with PNG
-    text = text.replace(".svg", ".png")
-    return text
+    return text.replace(".svg", ".png")
 
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /

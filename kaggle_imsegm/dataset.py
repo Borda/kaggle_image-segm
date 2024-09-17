@@ -169,8 +169,7 @@ class TractDataset3D(TractDataset):
     def _convert_table(df: pd.DataFrame) -> List[pd.DataFrame]:
         """Convert table to row per images and column per class."""
         df["Case_Day"] = [p.split(os.path.sep)[-3] for p in df["image_path"]]
-        dfs = [dfg for _, dfg in df.groupby("Case_Day")]
-        return dfs
+        return [dfg for _, dfg in df.groupby("Case_Day")]
 
     def _load_image(self, idx: int) -> np.ndarray:
         img_path = os.path.join(self.img_folder, self._df_data[idx].iloc[0]["image_path"])
@@ -223,7 +222,7 @@ class TractData(LightningDataModule):
     def _default_transform(self) -> Callable:
         if self._dataset_cls is TractDataset2D:
             return DEFAULT_TRANSFORM_2D
-        if self._dataset_cls is TractDataset3D:
+        if self._dataset_cls is TractDataset3D:  # noqa: RET503
             # todo
             return lambda x: x
 
@@ -258,5 +257,5 @@ class TractData(LightningDataModule):
         return DataLoader(self.dataset_val, shuffle=False, **self._dataloader_kwargs)
 
     def predict_dataloader(self) -> DataLoader:
-        if self.dataset_pred:
+        if self.dataset_pred:  # noqa: RET503
             return DataLoader(self.dataset_pred, shuffle=False, **self._dataloader_kwargs)

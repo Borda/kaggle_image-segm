@@ -66,5 +66,4 @@ def rle_encode(mask: np.ndarray, label_bg: int = 0) -> Dict[int, str]:
             continue
         rle[val] = rle.get(val, []) + [str(start), length]
     # post-processing
-    rle = {lb: " ".join(map(str, id_lens)) for lb, id_lens in rle.items()}
-    return rle
+    return {lb: " ".join(map(str, id_lens)) for lb, id_lens in rle.items()}

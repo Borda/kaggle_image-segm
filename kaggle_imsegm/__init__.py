@@ -1,6 +1,6 @@
 import os
 
-from kaggle_imsegm.__about__ import *
+from kaggle_imsegm.__about__ import *  # noqa: F403
 
 _PATH_PACKAGE = os.path.realpath(os.path.dirname(__file__))
 _PATH_PROJECT = os.path.dirname(_PATH_PACKAGE)
