@@ -24,7 +24,7 @@ updates:
     directory: "/"
     # Check for updates once a week
     schedule:
-      interval: "quarterly"
+      interval: "monthly"
     # Labels on pull requests for version updates only
     labels: ["CI / tests"]
     pull-request-branch-name:
