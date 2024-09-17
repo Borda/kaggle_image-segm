@@ -61,7 +61,7 @@ jobs:
           python -c "import kaggle_imsegm ;  print(kaggle_imsegm.__version__)"
 
 
-  testing-guardian:
+  install-guardian:
     runs-on: ubuntu-latest
     needs: pkg-install
     if: always()

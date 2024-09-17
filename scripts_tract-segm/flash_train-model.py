@@ -1,11 +1,8 @@
 import os
-
 from typing import Optional
 
 import fire
-
 import flash
-
 from flash.image import SemanticSegmentation, SemanticSegmentationData
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, StochasticWeightAveraging
 from pytorch_lightning.loggers import WandbLogger

@@ -5,7 +5,7 @@ from typing import List
 import fire as fire
 import numpy as np
 import pandas as pd
-from joblib import delayed, Parallel
+from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 

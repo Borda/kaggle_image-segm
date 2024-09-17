@@ -6,11 +6,10 @@ import numpy as np
 import torch
 from albumentations import Compose, DualTransform
 from albumentations.pytorch import ToTensorV2
-
 from flash.core.data.io.input_transform import InputTransform
 from flash.core.data.io.output_transform import OutputTransform
 from flash.image.segmentation.input_transform import prepare_target, remove_extra_dimensions
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 COLOR_MEAN: float = 0.349977
 COLOR_STD: float = 0.215829
@@ -86,35 +85,31 @@ class TractFlashSegmentationTransform(InputTransform):
     color_std: float = 0.215829
 
     def train_per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter(
-            [
-                NormImage(always_apply=True),
-                alb.Resize(*self.image_size),
-                alb.VerticalFlip(p=0.5),
-                alb.HorizontalFlip(p=0.5),
-                alb.RandomRotate90(p=0.5),
-                alb.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.03, rotate_limit=5, p=1.0),
-                alb.GaussNoise(var_limit=(0.001, 0.005), mean=0, per_channel=False, p=1.0),
-                alb.OneOf(
-                    [
-                        alb.GridDistortion(num_steps=5, distort_limit=0.05, p=1.0),
-                        alb.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=1.0),
-                    ],
-                    p=0.25,
-                ),
-                alb.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
-                alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
-            ]
-        )
+        return FlashAlbumentationsAdapter([
+            NormImage(always_apply=True),
+            alb.Resize(*self.image_size),
+            alb.VerticalFlip(p=0.5),
+            alb.HorizontalFlip(p=0.5),
+            alb.RandomRotate90(p=0.5),
+            alb.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.03, rotate_limit=5, p=1.0),
+            alb.GaussNoise(var_limit=(0.001, 0.005), mean=0, per_channel=False, p=1.0),
+            alb.OneOf(
+                [
+                    alb.GridDistortion(num_steps=5, distort_limit=0.05, p=1.0),
+                    alb.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=1.0),
+                ],
+                p=0.25,
+            ),
+            alb.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.8),
+            alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
+        ])
 
     def per_sample_transform(self) -> Callable:
-        return FlashAlbumentationsAdapter(
-            [
-                NormImage(always_apply=True),
-                alb.Resize(*self.image_size),
-                alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
-            ]
-        )
+        return FlashAlbumentationsAdapter([
+            NormImage(always_apply=True),
+            alb.Resize(*self.image_size),
+            alb.Normalize(mean=[self.color_mean] * 3, std=[self.color_std] * 3, max_pixel_value=1.0),
+        ])
 
     def target_per_batch_transform(self) -> Callable:
         return prepare_target
