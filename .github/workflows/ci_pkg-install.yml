@@ -29,7 +29,7 @@ jobs:
 
       - name: Verify package
         run: |
-          pip install twine==5.1.1
+          pip install twine==6.1.1
           twine check dist/*
           python setup.py clean
 
