@@ -222,7 +222,7 @@ class TractData(LightningDataModule):
     def _default_transform(self) -> Callable:
         if self._dataset_cls is TractDataset2D:
             return DEFAULT_TRANSFORM_2D
-        if self._dataset_cls is TractDataset3D:  # noqa: RET503
+        if self._dataset_cls is TractDataset3D:
             # todo
             return lambda x: x
 
@@ -257,5 +257,5 @@ class TractData(LightningDataModule):
         return DataLoader(self.dataset_val, shuffle=False, **self._dataloader_kwargs)
 
     def predict_dataloader(self) -> DataLoader:
-        if self.dataset_pred:  # noqa: RET503
+        if self.dataset_pred:
             return DataLoader(self.dataset_pred, shuffle=False, **self._dataloader_kwargs)
