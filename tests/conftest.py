@@ -1,4 +1,11 @@
 import os.path
 
+import pytest
+
 _ROOT_TESTS = os.path.dirname(__file__)
 _ROOT_DATA = os.path.join(_ROOT_TESTS, "_data")
+
+
+@pytest.fixture
+def data_dir() -> str:
+    return _ROOT_DATA

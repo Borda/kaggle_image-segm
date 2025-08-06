@@ -13,7 +13,6 @@ from kaggle_imsegm.data_io import extract_tract_details
 from kaggle_imsegm.dataset import TractData
 from kaggle_imsegm.model import MixedLoss
 from kaggle_imsegm.transform import SemanticSegmentationOutputTransform
-from tests import _ROOT_DATA
 
 
 @pytest.mark.parametrize("losses", [("dice",), ("bce", "tversky")])
@@ -24,7 +23,7 @@ def test_losses(losses):
     ml(y_pred, y_true)
 
 
-def test_model_train_predict(data_dir: str = _ROOT_DATA):
+def test_model_train_predict(data_dir):
     np.random.seed(42)
     tab_train = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab_train[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab_train["id"].apply(
