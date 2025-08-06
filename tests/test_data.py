@@ -9,7 +9,6 @@ import torch
 from kaggle_imsegm.data_io import create_tract_segmentation, extract_tract_details, load_volume_from_images
 from kaggle_imsegm.dataset import TractData, TractDataset2D, TractDataset3D
 from kaggle_imsegm.visual import show_tract_datamodule_samples_2d
-from tests import _ROOT_DATA
 
 
 def _reindex_slices(tab: pd.DataFrame) -> pd.DataFrame:
@@ -24,7 +23,7 @@ def _reindex_slices(tab: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(dfg)
 
 
-def test_load_volume(data_dir: str = _ROOT_DATA):
+def test_load_volume(data_dir):
     img_dir = os.path.join(data_dir, "train", "case102", "case102_day0", "scans")
     vol = load_volume_from_images(img_dir)
     assert vol.shape == (8, 310, 360)
@@ -45,7 +44,7 @@ def test_load_volume(data_dir: str = _ROOT_DATA):
 
 
 @pytest.mark.parametrize("annot_mode", ["multilabel", "multiclass"])
-def test_dataset_2d(annot_mode: str, data_dir: str = _ROOT_DATA):
+def test_dataset_2d(annot_mode: str, data_dir):
     tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
@@ -62,7 +61,7 @@ def test_dataset_2d(annot_mode: str, data_dir: str = _ROOT_DATA):
         assert spl["target"].shape == torch.Size([310, 360])
 
 
-def test_dataset_2d_predict(data_dir: str = _ROOT_DATA):
+def test_dataset_2d_predict(data_dir):
     ls_imgs = glob.glob(os.path.join(data_dir, "**", "*.png"), recursive=True)
     ls_imgs = [p.replace(data_dir + os.path.sep, "") for p in sorted(ls_imgs)]
     tab = pd.DataFrame({"image_path": ls_imgs})
@@ -75,7 +74,7 @@ def test_dataset_2d_predict(data_dir: str = _ROOT_DATA):
 
 
 @pytest.mark.parametrize("annot_mode", ["multilabel", "multiclass"])
-def test_dataset_3d(annot_mode: str, data_dir: str = _ROOT_DATA):
+def test_dataset_3d(annot_mode: str, data_dir):
     tab = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))
@@ -95,7 +94,7 @@ def test_dataset_3d(annot_mode: str, data_dir: str = _ROOT_DATA):
         assert spl["target"].shape == torch.Size([4, 310, 360])
 
 
-def test_dataset_3d_predict(data_dir: str = _ROOT_DATA):
+def test_dataset_3d_predict(data_dir):
     ls_imgs = glob.glob(os.path.join(data_dir, "**", "*.png"), recursive=True)
     ls_imgs = [p.replace(data_dir + os.path.sep, "") for p in sorted(ls_imgs)]
     tab = pd.DataFrame({"image_path": ls_imgs})
@@ -109,7 +108,7 @@ def test_dataset_3d_predict(data_dir: str = _ROOT_DATA):
 
 
 @pytest.mark.parametrize("dataset_cls", [TractDataset2D])  # todo: TractDataset3D
-def test_datamodule(dataset_cls, data_dir: str = _ROOT_DATA):
+def test_datamodule(dataset_cls, data_dir):
     tab_train = pd.read_csv(os.path.join(data_dir, "train.csv"))
     tab_train[["Case", "Day", "Slice", "image", "image_path", "height", "width"]] = tab_train["id"].apply(
         lambda x: pd.Series(extract_tract_details(x, data_dir))

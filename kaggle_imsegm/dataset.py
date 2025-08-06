@@ -1,5 +1,5 @@
 import os
-from typing import Any, Callable, Dict, List, Sequence, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import albumentations as alb
 import numpy as np
@@ -225,6 +225,7 @@ class TractData(LightningDataModule):
         if self._dataset_cls is TractDataset3D:
             # todo
             return lambda x: x
+        raise TypeError()
 
     def setup(self, stage=None) -> None:
         if self._setup_completed:
@@ -256,6 +257,7 @@ class TractData(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.dataset_val, shuffle=False, **self._dataloader_kwargs)
 
-    def predict_dataloader(self) -> DataLoader:
-        if self.dataset_pred:
-            return DataLoader(self.dataset_pred, shuffle=False, **self._dataloader_kwargs)
+    def predict_dataloader(self) -> Optional[DataLoader]:
+        if not self.dataset_pred:
+            return None
+        return DataLoader(self.dataset_pred, shuffle=False, **self._dataloader_kwargs)
